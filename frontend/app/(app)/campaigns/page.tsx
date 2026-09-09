@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/api/client";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 interface Campaign {
   id: number;
@@ -73,6 +74,17 @@ export default function Campaigns() {
   }, []);
 
   async function setStatus(id: number, status: string) {
+    if (status === "running") {
+      const { data } = await api.post(`/campaigns/${id}/preflight`);
+      if (data.errors.length) {
+        alert(`Can't send yet:\n\n${data.errors.join("\n")}`);
+        return;
+      }
+      if (data.warnings.length) {
+        const proceed = await confirmDialog(`${data.warnings.join("\n\n")}\n\nSend anyway?`);
+        if (!proceed) return;
+      }
+    }
     await api.put(`/campaigns/${id}/status`, { status });
     await load();
   }

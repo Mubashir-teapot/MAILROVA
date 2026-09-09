@@ -1,12 +1,15 @@
 import { Request, Response } from "express";
 import { z } from "zod";
+import { isUnsafeEmailHtml } from "../../common/utils/sanitizeEmailHtml";
 import { templatesService } from "./templates.service";
 
 const templateSchema = z.object({
   name: z.string().min(1),
   type: z.enum(["campaign", "campaign_visual", "tx"]).optional(),
   subject: z.string().optional(),
-  body: z.string().min(1),
+  body: z.string().min(1).refine((html) => !isUnsafeEmailHtml(html), {
+    message: "Content contains disallowed markup (script tags, event handlers, or javascript:/data: URLs)",
+  }),
   bodySource: z.unknown().optional(),
   isDefault: z.boolean().optional(),
 });

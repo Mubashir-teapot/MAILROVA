@@ -1,14 +1,12 @@
 import Docker from "dockerode";
 import { env } from "../../config/env";
 
-// ponytail: talks to the Docker socket to recreate the mail (`mta`) container
-// with an updated domain list — this is what makes "add a domain in the UI"
-// actually take effect without SSHing in. Scoped to exactly one named
-// container; never touches anything else. Requires the backend container to
-// have /var/run/docker.sock mounted (see docker-compose.yml) — a real
-// privilege trade-off (root-equivalent host access if the backend is ever
-// compromised), documented there.
-const docker = new Docker({ socketPath: "/var/run/docker.sock" });
+// Talks to `docker-proxy` (tecnativa/docker-socket-proxy, see
+// docker-compose.yml), not the raw socket — it only forwards the container
+// inspect/create/start/stop/remove calls this file actually makes, so a
+// compromised backend can't reach images/volumes/networks/exec/secrets/swarm
+// or any container other than what it already targets by name.
+const docker = new Docker({ host: "docker-proxy", port: 2375 });
 
 function setEnvVar(envList: string[], key: string, value: string): string[] {
   const idx = envList.findIndex((e) => e.startsWith(`${key}=`));

@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import { ApiError } from "../../common/utils/ApiError";
 import { usersRepository } from "./users.repository";
 
@@ -26,13 +25,14 @@ export const usersService = {
     const existing = await usersRepository.findByUsernameOrEmail(tenantId, input.username, input.email);
     if (existing) throw ApiError.conflict("Username or email already in use");
 
-    // API users authenticate with a generated token instead of a password.
+    // A "user" logs in with a password; an "api" (service account) user has
+    // none — it authenticates only via API keys issued to it (see
+    // modules/apiKeys), never through /auth/login.
     const isApi = input.type === "api";
-    const plainSecret = isApi ? crypto.randomBytes(32).toString("hex") : input.password;
-    if (!plainSecret) throw ApiError.badRequest("Password is required");
+    if (!isApi && !input.password) throw ApiError.badRequest("Password is required");
 
-    const passwordHash = await bcrypt.hash(plainSecret, 10);
-    const user = await usersRepository.create({
+    const passwordHash = isApi ? null : await bcrypt.hash(input.password!, 10);
+    return usersRepository.create({
       tenant: { connect: { id: tenantId } },
       username: input.username,
       email: input.email,
@@ -40,9 +40,6 @@ export const usersService = {
       type: isApi ? "api" : "user",
       role: input.roleId ? { connect: { id: input.roleId } } : undefined,
     });
-
-    // The plaintext API token is only ever shown once, at creation.
-    return isApi ? { ...user, apiToken: plainSecret } : user;
   },
 
   async update(tenantId: number, id: number, input: Partial<UserInput>) {

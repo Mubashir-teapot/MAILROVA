@@ -242,7 +242,7 @@ export const campaignsService = {
         }
       }
 
-      if (sent > 0) await campaignsRepository.incrementSent(id, sent);
+      if (sent > 0) await campaignsRepository.incrementSent(tenantId, id, sent);
       if (!cappedForToday) await campaignsRepository.updateStatus(tenantId, id, "finished");
     } finally {
       activeDispatches.delete(id);

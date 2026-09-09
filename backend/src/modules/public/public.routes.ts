@@ -1,8 +1,11 @@
 import { Router } from "express";
 import { asyncHandler } from "../../common/utils/asyncHandler";
+import { publicRateLimit } from "../../common/middleware/rateLimit";
 import { publicController } from "./public.controller";
 
 export const publicRoutes = Router();
+
+publicRoutes.use(publicRateLimit);
 
 publicRoutes.get("/lists", asyncHandler(publicController.lists));
 publicRoutes.post("/subscription", asyncHandler(publicController.subscribe));

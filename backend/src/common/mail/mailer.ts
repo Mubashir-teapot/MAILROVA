@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { env } from "../../config/env";
+import { sanitizeEmailHtml } from "../utils/sanitizeEmailHtml";
 
 // ponytail: one shared SMTP transport. The source app's multi-server round-robin
 // pool + per-from-address routing isn't reimplemented here — add a pool per
@@ -30,7 +31,7 @@ export async function sendMail(input: SendMailInput) {
     cc: input.cc?.length ? input.cc : undefined,
     bcc: input.bcc?.length ? input.bcc : undefined,
     subject: input.subject,
-    html: input.html,
+    html: input.html !== undefined ? sanitizeEmailHtml(input.html) : undefined,
     text: input.text,
     headers: input.headers,
     attachments: input.attachments,

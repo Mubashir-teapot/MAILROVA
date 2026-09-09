@@ -133,7 +133,7 @@ export const domainsService = {
   async verify(tenantId: number, id: number) {
     const domain = await domainsService.get(tenantId, id);
     const statuses = await verifyDomainDns(domain);
-    return domainsRepository.setDnsStatus(id, statuses);
+    return domainsRepository.setDnsStatus(tenantId, id, statuses);
   },
 
   // Called by the campaign dispatcher before each send.

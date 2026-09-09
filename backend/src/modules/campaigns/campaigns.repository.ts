@@ -43,8 +43,8 @@ export const campaignsRepository = {
     return prisma.campaign.update({ where: { id, tenantId }, data: { status } });
   },
 
-  incrementSent(id: number, count: number) {
-    return prisma.campaign.update({ where: { id }, data: { sent: { increment: count } } });
+  incrementSent(tenantId: number, id: number, count: number) {
+    return prisma.campaign.update({ where: { id, tenantId }, data: { sent: { increment: count } } });
   },
 
   remove(tenantId: number, id: number) {

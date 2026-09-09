@@ -30,10 +30,11 @@ export const domainsRepository = {
   },
 
   setDnsStatus(
+    tenantId: number,
     id: number,
     status: { spfStatus?: DnsCheckStatus; dkimStatus?: DnsCheckStatus; dmarcStatus?: DnsCheckStatus; mxStatus?: DnsCheckStatus }
   ) {
-    return prisma.domain.update({ where: { id }, data: { ...status, lastVerifiedAt: new Date() } });
+    return prisma.domain.update({ where: { id, tenantId }, data: { ...status, lastVerifiedAt: new Date() } });
   },
 
   async getTodaySentCount(domainId: number, date: string) {

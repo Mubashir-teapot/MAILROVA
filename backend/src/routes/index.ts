@@ -14,6 +14,7 @@ import { importRoutes } from "../modules/import/import.routes";
 import { publicRoutes } from "../modules/public/public.routes";
 import { domainsRoutes } from "../modules/domains/domains.routes";
 import { mailboxesRoutes } from "../modules/mailboxes/mailboxes.routes";
+import { apiKeysRoutes } from "../modules/apiKeys/apiKeys.routes";
 
 export const apiRouter = Router();
 
@@ -32,3 +33,4 @@ apiRouter.use("/import", importRoutes);
 apiRouter.use("/public", publicRoutes);
 apiRouter.use("/domains", domainsRoutes);
 apiRouter.use("/mailboxes", mailboxesRoutes);
+apiRouter.use("/api-keys", apiKeysRoutes);

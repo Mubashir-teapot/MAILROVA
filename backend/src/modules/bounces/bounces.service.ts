@@ -103,13 +103,13 @@ export const bouncesService = {
 
     if (count >= rule.count) {
       if (rule.action === "blocklist") {
-        await prisma.subscriber.update({ where: { id: subscriber.id }, data: { status: "blocklisted" } });
+        await prisma.subscriber.update({ where: { id: subscriber.id, tenantId }, data: { status: "blocklisted" } });
         await prisma.subscriberList.updateMany({ where: { subscriberId: subscriber.id }, data: { status: "unsubscribed" } });
         await addSuppression(tenantId, subscriber.email, "bounce");
       } else if (rule.action === "unsubscribe") {
         await prisma.subscriberList.updateMany({ where: { subscriberId: subscriber.id }, data: { status: "unsubscribed" } });
       } else if (rule.action === "delete") {
-        await prisma.subscriber.delete({ where: { id: subscriber.id } });
+        await prisma.subscriber.delete({ where: { id: subscriber.id, tenantId } });
         await addSuppression(tenantId, subscriber.email, "bounce");
       }
     }

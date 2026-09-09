@@ -1,13 +1,14 @@
 import { Router } from "express";
 import { asyncHandler } from "../../common/utils/asyncHandler";
 import { requirePlatformAuth } from "./platform.middleware";
+import { loginRateLimit } from "../../common/middleware/rateLimit";
 import { platformController } from "./platform.controller";
 
 // Deliberately mounted outside the tenant-resolution pipeline (see app.ts) —
 // a platform admin manages tenants, they aren't a member of one.
 export const platformRouter = Router();
 
-platformRouter.post("/login", asyncHandler(platformController.login));
+platformRouter.post("/login", loginRateLimit, asyncHandler(platformController.login));
 platformRouter.post("/logout", requirePlatformAuth, asyncHandler(platformController.logout));
 platformRouter.get("/me", requirePlatformAuth, asyncHandler(platformController.me));
 

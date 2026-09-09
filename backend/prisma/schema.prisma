@@ -152,6 +152,7 @@ model Tenant {
   links        Link[]
   bounces      Bounce[]
   suppressions Suppression[]
+  apiKeys      ApiKey[]
 
   @@map("tenants")
 }
@@ -210,10 +211,34 @@ model User {
 
   tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   mailboxes UserMailbox[]
+  apiKeys   ApiKey[]
 
   @@unique([tenantId, username])
   @@unique([tenantId, email])
   @@map("users")
+}
+
+// A bearer token for programmatic access — distinct from User.passwordHash
+// (session-cookie login). Only `keyHash` (sha256 of the full key) and a short
+// `keyPrefix` (for fast lookup + UI display) are ever stored; the plaintext
+// key is generated once, returned in the create response, and never
+// retrievable again — see apiKeys.service.ts.
+model ApiKey {
+  id         Int       @id @default(autoincrement())
+  uuid       String    @unique @default(uuid())
+  tenantId   Int       @map("tenant_id")
+  userId     Int       @map("user_id")
+  name       String
+  keyPrefix  String    @unique @map("key_prefix")
+  keyHash    String    @map("key_hash")
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  revokedAt  DateTime? @map("revoked_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
 }
 
 model List {

@@ -53,15 +53,17 @@ export const campaignsRepository = {
 
   // Subscribers eligible for this campaign: enabled, on one of its lists,
   // either `unconfirmed`/`confirmed` on a single opt-in list or `confirmed`
-  // on a double opt-in list, not suppressed, and not already sent to (so
-  // pause/resume/warmup deferral never double-sends).
+  // on a double opt-in list, not suppressed, and not already terminally
+  // handled (sent/bounced/undeliverable — NOT `failed`, which is still
+  // within its retry budget, see queue/boss.ts) so pause/resume/warmup
+  // deferral never double-sends, but a transient failure still gets retried.
   async findEligibleSubscribers(tenantId: number, campaignId: number) {
-    const [campaignLists, alreadySent, suppressed] = await Promise.all([
+    const [campaignLists, handled, suppressed] = await Promise.all([
       prisma.campaignList.findMany({ where: { campaignId }, include: { list: true } }),
-      prisma.campaignSend.findMany({ where: { campaignId }, select: { email: true } }),
+      prisma.campaignSend.findMany({ where: { campaignId, status: { in: ["sent", "bounced", "undeliverable"] } }, select: { email: true } }),
       prisma.suppression.findMany({ where: { tenantId }, select: { email: true } }),
     ]);
-    const sentEmails = new Set(alreadySent.map((s) => s.email));
+    const sentEmails = new Set(handled.map((s) => s.email));
     const suppressedEmails = new Set(suppressed.map((s) => s.email));
 
     const seenEmails = new Set<string>();
@@ -89,10 +91,26 @@ export const campaignsRepository = {
     return subscribers;
   },
 
-  alreadySentEmails(campaignId: number) {
+  // Terminal outcomes only — see findEligibleSubscribers' comment.
+  handledEmails(campaignId: number) {
     return prisma.campaignSend
-      .findMany({ where: { campaignId }, select: { email: true } })
+      .findMany({ where: { campaignId, status: { in: ["sent", "bounced", "undeliverable"] } }, select: { email: true } })
       .then((rows) => new Set(rows.map((r) => r.email)));
+  },
+
+  // Whether this campaign still has any target recipient (list-derived or
+  // ad-hoc) without a terminal outcome yet — used to decide when a "running"
+  // campaign is actually done (see campaigns.worker.ts's completion check).
+  async hasPendingRecipients(tenantId: number, campaignId: number, toEmails: string[]) {
+    const eligible = await campaignsRepository.findEligibleSubscribers(tenantId, campaignId);
+    if (eligible.length > 0) return true;
+    if (!toEmails.length) return false;
+    const [handled, suppressed] = await Promise.all([
+      campaignsRepository.handledEmails(campaignId),
+      prisma.suppression.findMany({ where: { tenantId, email: { in: toEmails } }, select: { email: true } }),
+    ]);
+    const suppressedEmails = new Set(suppressed.map((s) => s.email));
+    return toEmails.some((email) => !handled.has(email) && !suppressedEmails.has(email));
   },
 
   recordSend(campaignId: number, email: string, status: SendStatus, opts?: { subscriberId?: number; error?: string }) {

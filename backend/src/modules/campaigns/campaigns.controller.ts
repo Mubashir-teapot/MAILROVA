@@ -57,4 +57,8 @@ export const campaignsController = {
     const { status } = statusSchema.parse(req.body);
     res.json(await campaignsService.setStatus(req.user!.tenantId, Number(req.params.id), status));
   },
+
+  async preflight(req: Request, res: Response) {
+    res.json(await campaignsService.preflight(req.user!.tenantId, Number(req.params.id)));
+  },
 };

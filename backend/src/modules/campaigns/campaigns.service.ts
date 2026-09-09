@@ -1,12 +1,11 @@
-import { CampaignStatus } from "@prisma/client";
+import { Campaign, CampaignStatus } from "@prisma/client";
 import { ApiError } from "../../common/utils/ApiError";
-import { sendMail } from "../../common/mail/mailer";
-import { renderTemplate } from "../../common/utils/renderTemplate";
-import { makeUnsubscribeToken } from "../../common/utils/unsubscribeToken";
-import { env } from "../../config/env";
 import { prisma } from "../../config/prisma";
-import { domainsService } from "../domains/domains.service";
-import { mailboxesService } from "../mailboxes/mailboxes.service";
+import { boss, SEND_EMAIL_QUEUE } from "../../common/queue/boss";
+import { renderTemplate } from "../../common/utils/renderTemplate";
+import { isUnsafeEmailHtml } from "../../common/utils/sanitizeEmailHtml";
+import { domainsRepository } from "../domains/domains.repository";
+import { mailboxesRepository } from "../mailboxes/mailboxes.repository";
 import { campaignsRepository } from "./campaigns.repository";
 
 export interface CampaignInput {
@@ -37,20 +36,18 @@ const ALLOWED_TRANSITIONS: Record<CampaignStatus, CampaignStatus[]> = {
   cancelled: [],
 };
 
-// Guards against the scheduler re-invoking dispatch() on a campaign that's
-// already mid-send (it re-checks every "running" campaign every tick so that
-// a warmup-capped or interrupted send resumes on its own).
-const activeDispatches = new Set<number>();
-
-const SEND_RATE_SETTING_KEY = "send_rate_per_minute";
-
-// Per-tenant, editable live from Settings — not a static env var, so an org
-// can tune their own throttle without a restart. Falls back to the env
-// default (see SEND_RATE_PER_MINUTE in .env) if never set.
-async function minMsBetweenSends(tenantId: number): Promise<number> {
-  const row = await prisma.setting.findUnique({ where: { tenantId_key: { tenantId, key: SEND_RATE_SETTING_KEY } } });
-  const ratePerMinute = typeof row?.value === "number" && row.value > 0 ? row.value : env.sendRatePerMinute;
-  return 60_000 / Math.max(1, ratePerMinute);
+// Shared by enqueueEligible() and preflight() — who a campaign would send to
+// right now, deduped list-subscribers + still-eligible ad-hoc addresses.
+async function resolveRecipients(tenantId: number, campaign: Campaign) {
+  const listSubscribers = await campaignsRepository.findEligibleSubscribers(tenantId, campaign.id);
+  const handled = await campaignsRepository.handledEmails(campaign.id);
+  const suppressed = new Set(
+    (await prisma.suppression.findMany({ where: { tenantId }, select: { email: true } })).map((s) => s.email)
+  );
+  const adhoc = (campaign.toEmails ?? []).filter(
+    (email) => !listSubscribers.some((s) => s.email === email) && !handled.has(email) && !suppressed.has(email)
+  );
+  return { listSubscribers, adhoc };
 }
 
 export const campaignsService = {
@@ -134,7 +131,7 @@ export const campaignsService = {
     const updated = await campaignsRepository.updateStatus(tenantId, id, status);
 
     if (status === "running") {
-      campaignsService.dispatch(tenantId, id).catch((err) => console.error(`campaign ${id} dispatch failed:`, err));
+      campaignsService.enqueueEligible(tenantId, id).catch((err) => console.error(`campaign ${id} enqueue failed:`, err));
     }
 
     return updated;
@@ -142,110 +139,77 @@ export const campaignsService = {
 
   // Re-invoked by the scheduler for every "running" campaign each tick, so a
   // send that stalled on a warmup/mailbox cap (or was interrupted by a
-  // restart) continues on its own once quota is available again.
-  async resumeRunning() {
-    const running = await prisma.campaign.findMany({ where: { status: "running" }, select: { id: true, tenantId: true } });
-    for (const c of running) {
-      campaignsService.dispatch(c.tenantId, c.id).catch((err) => console.error(`campaign ${c.id} resume failed:`, err));
+  // restart) resumes on its own once quota is available again. Safe to call
+  // repeatedly on the same campaign — every job carries a `singletonKey` of
+  // `campaign:{id}:email:{email}`, so re-enqueuing a recipient that already
+  // has a job in flight (or already has a terminal outcome, filtered out by
+  // findEligibleSubscribers/handledEmails) is always a no-op.
+  async enqueueEligible(tenantId: number, id: number) {
+    const campaign = await campaignsService.get(tenantId, id);
+    if (campaign.status !== "running") return;
+
+    const { listSubscribers, adhoc } = await resolveRecipients(tenantId, campaign);
+    const recipients = [
+      ...listSubscribers.map((s) => ({ id: s.id as number | null, email: s.email })),
+      ...adhoc.map((email) => ({ id: null as number | null, email })),
+    ];
+
+    for (const r of recipients) {
+      await boss.send(
+        SEND_EMAIL_QUEUE,
+        { tenantId, campaignId: id, email: r.email, subscriberId: r.id },
+        // `group` is what makes the worker's localGroupConcurrency:1 (see
+        // campaigns.worker.ts) actually serialize sends per tenant.
+        { singletonKey: `campaign:${id}:email:${r.email}`, group: { id: `tenant:${tenantId}` } }
+      );
+    }
+
+    if (recipients.length === 0) {
+      const stillPending = await campaignsRepository.hasPendingRecipients(tenantId, id, campaign.toEmails ?? []);
+      if (!stillPending) await campaignsRepository.updateStatus(tenantId, id, "finished");
     }
   },
 
-  // ponytail: in-process async loop, no background queue/worker (see
-  // FEATURES.md §9 for what the source app does here). Fire-and-forget so
-  // API calls / scheduler ticks return immediately. Safe to call repeatedly
-  // on the same campaign — `activeDispatches` prevents overlap, and already
-  // -sent recipients (CampaignSend, keyed by e-mail) are always skipped.
-  async dispatch(tenantId: number, id: number) {
-    if (activeDispatches.has(id)) return;
-    activeDispatches.add(id);
+  // Checked before a campaign is allowed to send — errors block it, warnings
+  // require the user to explicitly confirm anyway (see the Review wizard step).
+  async preflight(tenantId: number, id: number) {
+    const campaign = await campaignsService.get(tenantId, id);
+    const errors: string[] = [];
+    const warnings: string[] = [];
 
-    try {
-      const campaign = await campaignsService.get(tenantId, id);
-      const listSubscribers = await campaignsRepository.findEligibleSubscribers(tenantId, id);
-      const sentEmails = await campaignsRepository.alreadySentEmails(id);
+    if (!campaign.subject.trim()) errors.push("Subject is empty.");
+    if (!campaign.body.trim()) errors.push("Content is empty.");
+    if (isUnsafeEmailHtml(campaign.body)) errors.push("Content contains disallowed markup (script tags, event handlers, or javascript:/data: URLs).");
 
-      const suppressed = new Set(
-        (await prisma.suppression.findMany({ where: { tenantId }, select: { email: true } })).map((s) => s.email)
-      );
-
-      const adhoc = (campaign.toEmails ?? [])
-        .filter(
-          (email) => !listSubscribers.some((s) => s.email === email) && !sentEmails.has(email) && !suppressed.has(email)
-        )
-        .map((email) => ({
-          id: null as number | null,
-          uuid: "",
-          email,
-          name: email.split("@")[0],
-          attribs: {},
-          status: "enabled" as const,
-        }));
-
-      const recipients = [...listSubscribers, ...adhoc];
-      const fromDomain = campaign.fromEmail.match(/@([^\s>]+)/)?.[1]?.toLowerCase();
-      let lastSendAt = 0;
-
-      let sent = 0;
-      let cappedForToday = false;
-
-      for (const recipient of recipients) {
-        const current = await prisma.campaign.findUnique({ where: { id }, select: { status: true } });
-        if (current?.status !== "running") return; // paused/cancelled mid-send — stop, leave status as-is.
-
-        if (fromDomain && !(await domainsService.canSendOne(fromDomain))) {
-          cappedForToday = true;
-          break; // warmup daily cap reached — resume tomorrow via resumeRunning()
-        }
-        if (!(await mailboxesService.canSendOne(campaign.fromEmail))) {
-          cappedForToday = true;
-          break; // this mailbox's own daily cap reached
-        }
-
-        // Simple send-rate throttle — spread messages out rather than
-        // bursting the whole batch at once. Re-read each time so a mid-send
-        // change to the tenant's rate setting takes effect immediately.
-        const wait = (await minMsBetweenSends(tenantId)) - (Date.now() - lastSendAt);
-        if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-
-        const unsubToken = makeUnsubscribeToken(tenantId, recipient.email);
-        const unsubscribeUrl = `${env.publicUrl}/api/public/unsubscribe-link?email=${encodeURIComponent(recipient.email)}&token=${unsubToken}`;
-
-        const data = { Subscriber: recipient, Campaign: campaign, UnsubscribeUrl: unsubscribeUrl };
-        lastSendAt = Date.now();
-        try {
-          await sendMail({
-            to: recipient.email,
-            from: campaign.fromEmail,
-            cc: campaign.cc,
-            bcc: campaign.bcc,
-            subject: renderTemplate(campaign.subject, data),
-            html: campaign.contentType === "plain" ? undefined : renderTemplate(campaign.body, data),
-            text: campaign.contentType === "plain" ? renderTemplate(campaign.body, data) : campaign.altbody ?? undefined,
-            headers: {
-              "X-Campaign-UUID": campaign.uuid,
-              "X-Subscriber-UUID": recipient.uuid,
-              "List-Unsubscribe": `<${unsubscribeUrl}>`,
-              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-            },
-          });
-          await campaignsRepository.recordSend(id, recipient.email, "sent", { subscriberId: recipient.id ?? undefined });
-          if (fromDomain) await domainsService.recordSend(fromDomain);
-          await mailboxesService.recordSend(campaign.fromEmail);
-          sent += 1;
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          await campaignsRepository.recordSend(id, recipient.email, "failed", {
-            subscriberId: recipient.id ?? undefined,
-            error: message,
-          });
-          console.error(`campaign ${campaign.id} send failed for recipient ${recipient.email}:`, err);
-        }
-      }
-
-      if (sent > 0) await campaignsRepository.incrementSent(tenantId, id, sent);
-      if (!cappedForToday) await campaignsRepository.updateStatus(tenantId, id, "finished");
-    } finally {
-      activeDispatches.delete(id);
+    const { listSubscribers, adhoc } = await resolveRecipients(tenantId, campaign);
+    const recipientCount = listSubscribers.length + adhoc.length;
+    if (recipientCount === 0) {
+      errors.push("No eligible recipients — everyone targeted is already sent to, suppressed, or the lists/addresses are empty.");
     }
+
+    const fromDomain = campaign.fromEmail.match(/@([^\s>]+)/)?.[1]?.toLowerCase();
+    if (fromDomain) {
+      const domain = await domainsRepository.findByName(fromDomain);
+      if (domain) {
+        const unverified = (["spfStatus", "dkimStatus", "dmarcStatus"] as const).filter((k) => domain[k] !== "verified");
+        if (unverified.length) {
+          warnings.push(`Sending domain "${fromDomain}" has unverified DNS records (${unverified.join(", ")}) — deliverability may suffer.`);
+        }
+      } else {
+        warnings.push(`Sending domain "${fromDomain}" isn't a managed domain — no warmup ramp or DKIM signing will apply.`);
+      }
+    }
+
+    const mailbox = await mailboxesRepository.findByEmail(campaign.fromEmail.toLowerCase());
+    if (mailbox && !mailbox.enabled) errors.push(`Sending mailbox "${campaign.fromEmail}" is disabled.`);
+
+    const sample = { Subscriber: { email: "preview@example.com", name: "Preview" }, Campaign: campaign, UnsubscribeUrl: "https://example.com/unsubscribe" };
+    const renderedSubject = renderTemplate(campaign.subject, sample);
+    const renderedBody = renderTemplate(campaign.body, sample);
+    if (/\{\{|\}\}/.test(renderedSubject) || /\{\{|\}\}/.test(renderedBody)) {
+      warnings.push("Some {{ variables }} in the subject or content didn't resolve — double-check they're spelled correctly.");
+    }
+
+    return { errors, warnings, recipientCount };
   },
 };

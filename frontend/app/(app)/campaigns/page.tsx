@@ -16,7 +16,7 @@ interface Campaign {
 interface DeliveryLogEntry {
   id: number;
   email: string;
-  status: "sent" | "failed" | "bounced";
+  status: "sent" | "failed" | "bounced" | "undeliverable";
   error: string | null;
   sentAt: string;
 }
@@ -41,8 +41,10 @@ const STATUS_STYLE: Record<string, string> = {
 
 const LOG_STATUS_STYLE: Record<string, string> = {
   sent: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
-  failed: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
+  // Still within its retry budget — not final yet, distinct from undeliverable.
+  failed: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
   bounced: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
+  undeliverable: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
 };
 
 export default function Campaigns() {

@@ -18,3 +18,8 @@ campaignsRoutes.put(
   requirePermission("campaigns:send"),
   asyncHandler(campaignsController.setStatus)
 );
+campaignsRoutes.post(
+  "/:id/preflight",
+  requirePermission("campaigns:send"),
+  asyncHandler(campaignsController.preflight)
+);

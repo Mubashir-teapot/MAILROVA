@@ -91,8 +91,14 @@ enum DnsCheckStatus {
 
 enum SendStatus {
   sent
+  // Still within its retry budget (see queue/boss.ts) — NOT terminal, still
+  // counted as "eligible to (re)send" by campaigns.repository queries.
   failed
   bounced
+  // Retries exhausted — terminal, excluded from future eligibility, same as
+  // sent/bounced. Distinct from `failed` so a mid-retry recipient is never
+  // mistaken for a permanently-given-up one.
+  undeliverable
 }
 
 enum TenantStatus {

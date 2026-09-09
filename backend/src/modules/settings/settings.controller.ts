@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { z } from "zod";
+import { recordAudit } from "../../common/audit/auditLog";
 import { settingsService } from "./settings.service";
 
 export const settingsController = {
@@ -9,6 +10,15 @@ export const settingsController = {
 
   async update(req: Request, res: Response) {
     const input = z.record(z.unknown()).parse(req.body);
-    res.json(await settingsService.setMany(req.user!.tenantId, input));
+    const result = await settingsService.setMany(req.user!.tenantId, input);
+    recordAudit({
+      tenantId: req.user!.tenantId,
+      actorType: "user",
+      actorId: req.user!.id,
+      actorLabel: req.user!.username,
+      action: "settings.update",
+      meta: { keys: Object.keys(input) },
+    });
+    res.json(result);
   },
 };

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { z } from "zod";
+import { recordAudit } from "../../common/audit/auditLog";
 import { rolesService } from "./roles.service";
 
 const roleSchema = z.object({
@@ -24,7 +25,20 @@ export const rolesController = {
 
   async update(req: Request, res: Response) {
     const input = roleSchema.partial().parse(req.body);
-    res.json(await rolesService.update(req.user!.tenantId, Number(req.params.id), input));
+    const role = await rolesService.update(req.user!.tenantId, Number(req.params.id), input);
+    if (input.permissions !== undefined) {
+      recordAudit({
+        tenantId: req.user!.tenantId,
+        actorType: "user",
+        actorId: req.user!.id,
+        actorLabel: req.user!.username,
+        action: "role.permissions_change",
+        targetType: "role",
+        targetId: role.id,
+        meta: { name: role.name, permissions: input.permissions },
+      });
+    }
+    res.json(role);
   },
 
   async remove(req: Request, res: Response) {

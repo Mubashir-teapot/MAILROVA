@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
+import { recordAudit } from "../../common/audit/auditLog";
+import { mailboxesRepository } from "./mailboxes.repository";
 import { mailboxesService } from "./mailboxes.service";
 
 const createSchema = z.object({
@@ -21,7 +23,18 @@ export const mailboxesController = {
 
   async create(req: Request, res: Response) {
     const input = createSchema.parse(req.body);
-    res.status(201).json(await mailboxesService.create(req.user!.tenantId, input));
+    const mailbox = await mailboxesService.create(req.user!.tenantId, input);
+    recordAudit({
+      tenantId: req.user!.tenantId,
+      actorType: "user",
+      actorId: req.user!.id,
+      actorLabel: req.user!.username,
+      action: "mailbox.create",
+      targetType: "mailbox",
+      targetId: mailbox.id,
+      meta: { email: mailbox.email },
+    });
+    res.status(201).json(mailbox);
   },
 
   async setPassword(req: Request, res: Response) {
@@ -40,7 +53,19 @@ export const mailboxesController = {
   },
 
   async remove(req: Request, res: Response) {
-    await mailboxesService.remove(req.user!.tenantId, Number(req.params.id));
+    const id = Number(req.params.id);
+    const mailbox = await mailboxesRepository.findById(req.user!.tenantId, id);
+    await mailboxesService.remove(req.user!.tenantId, id);
+    recordAudit({
+      tenantId: req.user!.tenantId,
+      actorType: "user",
+      actorId: req.user!.id,
+      actorLabel: req.user!.username,
+      action: "mailbox.delete",
+      targetType: "mailbox",
+      targetId: id,
+      meta: { email: mailbox?.email },
+    });
     res.status(204).send();
   },
 

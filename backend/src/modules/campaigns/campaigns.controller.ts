@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { z } from "zod";
+import { recordAudit } from "../../common/audit/auditLog";
 import { isUnsafeEmailHtml } from "../../common/utils/sanitizeEmailHtml";
 import { campaignsService } from "./campaigns.service";
 
@@ -55,7 +56,21 @@ export const campaignsController = {
 
   async setStatus(req: Request, res: Response) {
     const { status } = statusSchema.parse(req.body);
-    res.json(await campaignsService.setStatus(req.user!.tenantId, Number(req.params.id), status));
+    const id = Number(req.params.id);
+    const campaign = await campaignsService.setStatus(req.user!.tenantId, id, status);
+    if (status === "running" || status === "cancelled") {
+      recordAudit({
+        tenantId: req.user!.tenantId,
+        actorType: "user",
+        actorId: req.user!.id,
+        actorLabel: req.user!.username,
+        action: status === "running" ? "campaign.send" : "campaign.cancel",
+        targetType: "campaign",
+        targetId: id,
+        meta: { name: campaign.name },
+      });
+    }
+    res.json(campaign);
   },
 
   async preflight(req: Request, res: Response) {

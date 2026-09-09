@@ -159,8 +159,34 @@ model Tenant {
   bounces      Bounce[]
   suppressions Suppression[]
   apiKeys      ApiKey[]
+  auditLogs    AuditLog[]
 
   @@map("tenants")
+}
+
+// A record of an important admin/user action — who did what, to what,
+// when. Written best-effort (see common/audit/auditLog.ts) so a logging
+// failure never blocks the action itself; read-only from the API.
+// `tenantId` is nullable for platform-level actions (tenant create/suspend),
+// mirroring how PlatformAdmin itself isn't scoped to a tenant.
+// `actorLabel` snapshots the actor's name/username at write time so the log
+// stays readable even if that user/key is later deleted.
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  tenantId   Int?     @map("tenant_id")
+  actorType  String   @map("actor_type") // user | platform_admin | api_key
+  actorId    Int      @map("actor_id")
+  actorLabel String   @map("actor_label")
+  action     String
+  targetType String?  @map("target_type")
+  targetId   Int?     @map("target_id")
+  meta       Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@map("audit_logs")
 }
 
 // A tenant can be reachable on more than one hostname (its default subdomain

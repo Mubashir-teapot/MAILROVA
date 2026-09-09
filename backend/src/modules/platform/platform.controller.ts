@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { z } from "zod";
+import { recordAudit } from "../../common/audit/auditLog";
 import { setPlatformSessionCookie, clearPlatformSessionCookie } from "./platform.middleware";
 import { platformService } from "./platform.service";
 import { getAllPlatformSettings, setPlatformSetting } from "./platformSettings";
@@ -38,12 +39,33 @@ export const platformController = {
 
   async createTenant(req: Request, res: Response) {
     const input = createTenantSchema.parse(req.body);
-    res.status(201).json(await platformService.createTenant(input));
+    const tenant = await platformService.createTenant(input);
+    recordAudit({
+      actorType: "platform_admin",
+      actorId: req.platformAdmin!.id,
+      actorLabel: req.platformAdmin!.username,
+      action: "tenant.create",
+      targetType: "tenant",
+      targetId: tenant.id,
+      meta: { name: tenant.name, slug: tenant.slug },
+    });
+    res.status(201).json(tenant);
   },
 
   async setStatus(req: Request, res: Response) {
     const { status } = z.object({ status: z.enum(["active", "suspended"]) }).parse(req.body);
-    res.json(await platformService.setStatus(Number(req.params.id), status));
+    const id = Number(req.params.id);
+    const tenant = await platformService.setStatus(id, status);
+    recordAudit({
+      actorType: "platform_admin",
+      actorId: req.platformAdmin!.id,
+      actorLabel: req.platformAdmin!.username,
+      action: status === "suspended" ? "tenant.suspend" : "tenant.reactivate",
+      targetType: "tenant",
+      targetId: id,
+      meta: { name: tenant.name },
+    });
+    res.json(tenant);
   },
 
   async addHostname(req: Request, res: Response) {

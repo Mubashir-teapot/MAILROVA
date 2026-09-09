@@ -8,11 +8,13 @@ import { useTheme } from "@/theme/ThemeContext";
 import { LogoMark } from "./Logo";
 import {
   AtSignIcon,
+  AuditLogIcon,
   BlockIcon,
   BounceIcon,
   CampaignIcon,
   DashboardIcon,
   GlobeIcon,
+  KeyIcon,
   ListIcon,
   LogoutIcon,
   MediaIcon,
@@ -39,6 +41,8 @@ const NAV = [
   { to: "/mailboxes", label: "Mailboxes", icon: AtSignIcon },
   { to: "/users", label: "Users", icon: UsersIcon },
   { to: "/roles", label: "Roles", icon: RoleIcon },
+  { to: "/api-keys", label: "API Keys", icon: KeyIcon },
+  { to: "/audit-log", label: "Audit Log", icon: AuditLogIcon },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { z } from "zod";
+import { recordAudit } from "../../common/audit/auditLog";
 import { usersService } from "./users.service";
 
 const userSchema = z.object({
@@ -21,16 +22,52 @@ export const usersController = {
 
   async create(req: Request, res: Response) {
     const input = userSchema.parse(req.body);
-    res.status(201).json(await usersService.create(req.user!.tenantId, input));
+    const user = await usersService.create(req.user!.tenantId, input);
+    recordAudit({
+      tenantId: req.user!.tenantId,
+      actorType: "user",
+      actorId: req.user!.id,
+      actorLabel: req.user!.username,
+      action: "user.create",
+      targetType: "user",
+      targetId: user.id,
+      meta: { username: user.username },
+    });
+    res.status(201).json(user);
   },
 
   async update(req: Request, res: Response) {
     const input = userSchema.partial().parse(req.body);
-    res.json(await usersService.update(req.user!.tenantId, Number(req.params.id), input));
+    const user = await usersService.update(req.user!.tenantId, Number(req.params.id), input);
+    if (input.roleId !== undefined) {
+      recordAudit({
+        tenantId: req.user!.tenantId,
+        actorType: "user",
+        actorId: req.user!.id,
+        actorLabel: req.user!.username,
+        action: "user.role_change",
+        targetType: "user",
+        targetId: user.id,
+        meta: { username: user.username, roleId: input.roleId },
+      });
+    }
+    res.json(user);
   },
 
   async remove(req: Request, res: Response) {
-    await usersService.remove(req.user!.tenantId, Number(req.params.id));
+    const id = Number(req.params.id);
+    const user = await usersService.get(req.user!.tenantId, id);
+    await usersService.remove(req.user!.tenantId, id);
+    recordAudit({
+      tenantId: req.user!.tenantId,
+      actorType: "user",
+      actorId: req.user!.id,
+      actorLabel: req.user!.username,
+      action: "user.delete",
+      targetType: "user",
+      targetId: id,
+      meta: { username: user.username },
+    });
     res.status(204).send();
   },
 };

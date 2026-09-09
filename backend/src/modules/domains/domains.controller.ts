@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { z } from "zod";
+import { recordAudit } from "../../common/audit/auditLog";
 import { domainsService } from "./domains.service";
 
 const domainSchema = z.object({
@@ -23,11 +24,34 @@ export const domainsController = {
 
   async create(req: Request, res: Response) {
     const input = domainSchema.parse(req.body);
-    res.status(201).json(await domainsService.create(req.user!.tenantId, input));
+    const domain = await domainsService.create(req.user!.tenantId, input);
+    recordAudit({
+      tenantId: req.user!.tenantId,
+      actorType: "user",
+      actorId: req.user!.id,
+      actorLabel: req.user!.username,
+      action: "domain.add",
+      targetType: "domain",
+      targetId: domain.id,
+      meta: { domain: domain.domain },
+    });
+    res.status(201).json(domain);
   },
 
   async remove(req: Request, res: Response) {
-    await domainsService.remove(req.user!.tenantId, Number(req.params.id));
+    const id = Number(req.params.id);
+    const domain = await domainsService.get(req.user!.tenantId, id);
+    await domainsService.remove(req.user!.tenantId, id);
+    recordAudit({
+      tenantId: req.user!.tenantId,
+      actorType: "user",
+      actorId: req.user!.id,
+      actorLabel: req.user!.username,
+      action: "domain.remove",
+      targetType: "domain",
+      targetId: id,
+      meta: { domain: domain.domain },
+    });
     res.status(204).send();
   },
 
@@ -36,7 +60,25 @@ export const domainsController = {
   },
 
   async verify(req: Request, res: Response) {
-    res.json(await domainsService.verify(req.user!.tenantId, Number(req.params.id)));
+    const id = Number(req.params.id);
+    const result = await domainsService.verify(req.user!.tenantId, id);
+    recordAudit({
+      tenantId: req.user!.tenantId,
+      actorType: "user",
+      actorId: req.user!.id,
+      actorLabel: req.user!.username,
+      action: "domain.verify",
+      targetType: "domain",
+      targetId: id,
+      meta: {
+        domain: result.domain,
+        spfStatus: result.spfStatus,
+        dkimStatus: result.dkimStatus,
+        dmarcStatus: result.dmarcStatus,
+        mxStatus: result.mxStatus,
+      },
+    });
+    res.json(result);
   },
 
   async setWarmup(req: Request, res: Response) {

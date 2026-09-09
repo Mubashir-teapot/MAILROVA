@@ -23,6 +23,14 @@ const ALIGN_OPTIONS: { value: "left" | "center" | "right"; label: string }[] = [
   { value: "right", label: "Right" },
 ];
 
+const VARIABLES = [
+  { token: "{{Subscriber.Name}}", label: "Subscriber name" },
+  { token: "{{Subscriber.Email}}", label: "Subscriber email" },
+  { token: "{{Campaign.Name}}", label: "Campaign name" },
+  { token: "{{Campaign.Subject}}", label: "Campaign subject" },
+  { token: "{{UnsubscribeUrl}}", label: "Unsubscribe link" },
+];
+
 export function Inspector({ block, media, onLoadMedia, onChange }: Props) {
   if (!block) {
     return (
@@ -50,6 +58,7 @@ export function Inspector({ block, media, onLoadMedia, onChange }: Props) {
             </select>
           </label>
           <ColorField label="Color" value={block.color} onChange={(color) => onChange({ color })} />
+          <VariablesField onInsert={(token) => onChange({ text: block.text + token } as Partial<Block>)} />
         </>
       )}
 
@@ -67,6 +76,7 @@ export function Inspector({ block, media, onLoadMedia, onChange }: Props) {
             />
           </label>
           <ColorField label="Color" value={block.color} onChange={(color) => onChange({ color })} />
+          <VariablesField onInsert={(token) => onChange({ html: block.html + token } as Partial<Block>)} />
         </>
       )}
 
@@ -127,6 +137,7 @@ export function Inspector({ block, media, onLoadMedia, onChange }: Props) {
           </label>
           <ColorField label="Background" value={block.bgColor} onChange={(bgColor) => onChange({ bgColor })} />
           <ColorField label="Text color" value={block.textColor} onChange={(textColor) => onChange({ textColor })} />
+          <VariablesField onInsert={(token) => onChange({ text: block.text + token } as Partial<Block>)} />
         </>
       )}
 
@@ -186,6 +197,34 @@ function AlignField({ value, onChange }: { value?: "left" | "center" | "right"; 
         ))}
       </div>
     </div>
+  );
+}
+
+// Appends the chosen token to the block's text — simpler and more robust
+// than cursor-position tracking inside a contentEditable element, at the
+// cost of always landing at the end rather than wherever the cursor was.
+function VariablesField({ onInsert }: { onInsert: (token: string) => void }) {
+  return (
+    <label className="label">
+      Insert variable
+      <select
+        className="input"
+        value=""
+        onChange={(e) => {
+          if (e.target.value) onInsert(e.target.value);
+          e.target.value = "";
+        }}
+      >
+        <option value="" disabled>
+          Choose…
+        </option>
+        {VARIABLES.map((v) => (
+          <option key={v.token} value={v.token}>
+            {v.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

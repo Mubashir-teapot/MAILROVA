@@ -36,6 +36,9 @@ export function TemplateEditorView({ id }: { id?: string }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const [testEmail, setTestEmail] = useState("");
+  const [testStatus, setTestStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
   useEffect(() => {
     if (!isNew) {
       api.get(`/templates/${id}`).then(({ data }) => {
@@ -82,6 +85,17 @@ export function TemplateEditorView({ id }: { id?: string }) {
     insertImage(data.url);
     loadMedia();
     e.target.value = "";
+  }
+
+  async function handleSendTest() {
+    if (!id || !testEmail.trim()) return;
+    setTestStatus("sending");
+    try {
+      await api.post(`/templates/${id}/test-send`, { email: testEmail.trim() });
+      setTestStatus("sent");
+    } catch {
+      setTestStatus("error");
+    }
   }
 
   async function handleSave() {
@@ -199,13 +213,35 @@ export function TemplateEditorView({ id }: { id?: string }) {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button className="btn" onClick={handleSave} disabled={saving || !name}>
           {saving ? "Saving…" : "Save template"}
         </button>
         <button className="btn-ghost" onClick={() => router.push("/templates")}>
           Cancel
         </button>
+
+        <div className="ml-auto flex items-center gap-2">
+          {!isNew && (
+            <>
+              <input
+                type="email"
+                className="input w-56"
+                placeholder="you@example.com"
+                value={testEmail}
+                onChange={(e) => {
+                  setTestEmail(e.target.value);
+                  setTestStatus("idle");
+                }}
+              />
+              <button type="button" className="btn-ghost" onClick={handleSendTest} disabled={!testEmail.trim() || testStatus === "sending"}>
+                {testStatus === "sending" ? "Sending…" : "Send test"}
+              </button>
+              {testStatus === "sent" && <span className="text-xs text-green-600">Sent</span>}
+              {testStatus === "error" && <span className="text-xs text-red-600">Failed</span>}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

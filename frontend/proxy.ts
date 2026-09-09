@@ -1,0 +1,38 @@
+import { NextRequest, NextResponse } from "next/server";
+
+const SESSION_COOKIE = "mailrova_session";
+
+// Fast, edge-level redirect for UX (no flash of the app shell before
+// bouncing to login). This only checks the cookie's *presence* — it can't
+// verify the JWT signature without importing Node crypto into the Edge
+// runtime, and it doesn't need to: the real security boundary is the
+// backend's requireAuth on every API call, which the axios client already
+// redirects on if a stale/invalid cookie gets a 401 back.
+//
+// /platform/* is a separate login (platform admins manage tenants, not a
+// member of one) with its own cookie — guarded client-side in
+// app/platform/layout.tsx instead, so it's excluded here entirely.
+export function proxy(req: NextRequest) {
+  if (req.nextUrl.pathname.startsWith("/platform")) return NextResponse.next();
+
+  const hasSession = req.cookies.has(SESSION_COOKIE);
+  const isLoginPage = req.nextUrl.pathname.startsWith("/admin/login");
+
+  if (!hasSession && !isLoginPage) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/admin/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (hasSession && isLoginPage) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};

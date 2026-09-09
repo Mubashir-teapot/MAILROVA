@@ -1,0 +1,100 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    # No host port. Only `backend` needs to reach this, over the compose
+    # network by service name (`db:5432`) — that works with no `ports`/
+    # `expose` at all, since containers on the same network always reach
+    # each other directly. Never touches the internet.
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Self-hosted outbound mail server (Postfix + OpenDKIM, direct-to-MX
+  # delivery — no third-party relay). The backend manages this container's
+  # domain list live via the Docker socket (see domains module) whenever a
+  # domain is added/removed, so it restarts itself to pick up new DKIM keys.
+  #
+  # Port 25 is real SMTP, not HTTP — Traefik/Dokploy's domain routing is for
+  # HTTP(S) services and doesn't apply here, so this has to be published
+  # straight to the host, unlike backend/frontend/db below. A host can only
+  # have ONE process bound to port 25 at a time: if this VPS already runs
+  # another mail server (or another Dokploy project's own mta), `docker
+  # compose up` will fail loudly with "port is already allocated" instead of
+  # silently colliding — that's the safety net. Check what's holding it with
+  # `sudo ss -tlnp | grep :25` and free it, or run this stack's mail on a
+  # dedicated IP if the host has more than one. If you don't need to receive
+  # bounces/replies on this domain, you can drop this `ports` block entirely
+  # and outbound sending still works (Postfix can send without listening).
+  mta:
+    image: boky/postfix
+    container_name: mailrova-mta
+    restart: unless-stopped
+    environment:
+      ALLOWED_SENDER_DOMAINS: ""
+      DKIM_AUTOGENERATE: "1"
+    ports:
+      - "25:25"
+    volumes:
+      - mta_dkim_keys:/etc/opendkim/keys
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    # No host port, and no Dokploy Domain either — the backend is never
+    # exposed to the internet directly. `frontend`'s Next.js server proxies
+    # /api/* to it over this internal network (see
+    # frontend/next.config.js), so only `frontend` needs a public Domain.
+    expose:
+      - "${BACKEND_PORT:-4000}"
+    depends_on:
+      db:
+        condition: service_healthy
+      mta:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - backend_uploads:/app/uploads
+      - mta_dkim_keys:/mta-dkim-keys:ro
+      # Grants the backend control over the `mta` container (restart it with
+      # an updated domain list on Add Domain). This is root-equivalent host
+      # access if the backend is ever compromised — a deliberate trade-off
+      # for "add a domain from the UI, no SSH needed." Remove this mount and
+      # manage `mta`'s ALLOWED_SENDER_DOMAINS by hand if you'd rather not
+      # grant it.
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    env_file: .env
+    # The only service that should get a public Domain in Dokploy. Its
+    # Next.js server proxies /api/* to `backend` internally, so a domain
+    # here is the single public entry point for the whole app.
+    expose:
+      - "${FRONTEND_PORT:-5173}"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  db_data:
+  backend_uploads:
+  mta_dkim_keys:

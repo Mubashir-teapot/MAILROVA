@@ -1,0 +1,33 @@
+// Full permission catalog — granted to a new tenant's initial "Super Admin"
+// role. Shared by the seed script and platform-driven tenant provisioning so
+// the two bootstrap paths never drift apart.
+export const ALL_PERMISSIONS = [
+  "lists:get_all",
+  "lists:manage_all",
+  "subscribers:get",
+  "subscribers:get_all",
+  "subscribers:manage",
+  "subscribers:import",
+  "subscribers:sql_query",
+  "tx:send",
+  "campaigns:get",
+  "campaigns:get_all",
+  "campaigns:get_analytics",
+  "campaigns:manage",
+  "campaigns:manage_all",
+  "campaigns:send",
+  "bounces:get",
+  "bounces:manage",
+  "webhooks:post_bounce",
+  "media:get",
+  "media:manage",
+  "templates:get",
+  "templates:manage",
+  "users:get",
+  "users:manage",
+  "roles:get",
+  "roles:manage",
+  "settings:get",
+  "settings:manage",
+  "settings:maintain",
+];

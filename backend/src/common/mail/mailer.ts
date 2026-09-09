@@ -1,0 +1,38 @@
+import nodemailer from "nodemailer";
+import { env } from "../../config/env";
+
+// ponytail: one shared SMTP transport. The source app's multi-server round-robin
+// pool + per-from-address routing isn't reimplemented here — add a pool per
+// server (Settings -> SMTP) if you need to spread volume across providers.
+const transport = nodemailer.createTransport({
+  host: env.smtp.host,
+  port: env.smtp.port,
+  secure: env.smtp.secure,
+  auth: env.smtp.user ? { user: env.smtp.user, pass: env.smtp.pass } : undefined,
+});
+
+export interface SendMailInput {
+  to: string;
+  subject: string;
+  html?: string;
+  text?: string;
+  from?: string;
+  cc?: string[];
+  bcc?: string[];
+  headers?: Record<string, string>;
+  attachments?: { filename: string; content: Buffer; contentType?: string }[];
+}
+
+export async function sendMail(input: SendMailInput) {
+  return transport.sendMail({
+    from: input.from ?? env.smtp.fromEmail,
+    to: input.to,
+    cc: input.cc?.length ? input.cc : undefined,
+    bcc: input.bcc?.length ? input.bcc : undefined,
+    subject: input.subject,
+    html: input.html,
+    text: input.text,
+    headers: input.headers,
+    attachments: input.attachments,
+  });
+}

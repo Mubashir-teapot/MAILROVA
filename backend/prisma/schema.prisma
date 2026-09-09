@@ -1,0 +1,561 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  user
+  api
+}
+
+enum UserStatus {
+  enabled
+  disabled
+}
+
+enum RoleType {
+  user
+  list
+}
+
+enum ListType {
+  public
+  private
+}
+
+enum ListOptin {
+  single
+  double
+}
+
+enum ListStatus {
+  active
+  archived
+}
+
+enum SubscriberStatus {
+  enabled
+  disabled
+  blocklisted
+}
+
+enum SubscriptionStatus {
+  unconfirmed
+  confirmed
+  unsubscribed
+}
+
+enum CampaignType {
+  regular
+  optin
+}
+
+enum CampaignStatus {
+  draft
+  scheduled
+  running
+  paused
+  finished
+  cancelled
+}
+
+enum ContentType {
+  richtext
+  html
+  markdown
+  plain
+  visual
+}
+
+enum TemplateType {
+  campaign
+  campaign_visual
+  tx
+}
+
+enum BounceType {
+  hard
+  soft
+  complaint
+}
+
+enum DnsCheckStatus {
+  pending
+  verified
+  failed
+}
+
+enum SendStatus {
+  sent
+  failed
+  bounced
+}
+
+enum TenantStatus {
+  active
+  suspended
+}
+
+// ---------------------------------------------------------------------------
+// Platform layer — not scoped to any tenant. PlatformAdmin manages Tenants
+// themselves (provisioning, suspension); this is separate from a tenant's
+// own Users/admins, who only ever see their own tenant's data.
+// ---------------------------------------------------------------------------
+
+// Platform-wide runtime config — e.g. the campaign scheduler's poll interval
+// — editable from the platform admin UI and picked up live, no restart.
+// (Per-tenant runtime knobs, like each org's send-rate limit, live in the
+// tenant-scoped Setting model instead — see below.)
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
+}
+
+model PlatformAdmin {
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_admins")
+}
+
+model Tenant {
+  id        Int          @id @default(autoincrement())
+  uuid      String       @unique @default(uuid())
+  name      String
+  slug      String       @unique
+  status    TenantStatus @default(active)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  hostnames    TenantHostname[]
+  users        User[]
+  roles        Role[]
+  lists        List[]
+  subscribers  Subscriber[]
+  campaigns    Campaign[]
+  templates    Template[]
+  media        Media[]
+  domains      Domain[]
+  mailboxes    Mailbox[]
+  settings     Setting[]
+  links        Link[]
+  bounces      Bounce[]
+  suppressions Suppression[]
+
+  @@map("tenants")
+}
+
+// A tenant can be reachable on more than one hostname (its default subdomain
+// plus any custom domain it points at this app). Resolving the incoming
+// request's Host header against this table is how the same deployment
+// serves multiple organizations without hardcoding a domain.
+model TenantHostname {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int      @map("tenant_id")
+  hostname  String   @unique
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_hostnames")
+}
+
+// ---------------------------------------------------------------------------
+// Tenant-scoped application data
+// ---------------------------------------------------------------------------
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int      @map("tenant_id")
+  name        String
+  type        RoleType @default(user)
+  permissions String[]
+  parentId    Int?     @map("parent_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users  User[]
+
+  @@map("roles")
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  uuid         String     @unique @default(uuid())
+  tenantId     Int        @map("tenant_id")
+  username     String
+  email        String
+  passwordHash String?    @map("password_hash")
+  type         UserType   @default(user)
+  status       UserStatus @default(enabled)
+  roleId       Int?       @map("role_id")
+  role         Role?      @relation(fields: [roleId], references: [id])
+  totpSecret   String?    @map("totp_secret")
+  totpEnabled  Boolean    @default(false) @map("totp_enabled")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  mailboxes UserMailbox[]
+
+  @@unique([tenantId, username])
+  @@unique([tenantId, email])
+  @@map("users")
+}
+
+model List {
+  id          Int        @id @default(autoincrement())
+  uuid        String     @unique @default(uuid())
+  tenantId    Int        @map("tenant_id")
+  name        String
+  type        ListType   @default(private)
+  optin       ListOptin  @default(single)
+  status      ListStatus @default(active)
+  tags        String[]
+  description String?
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscribers   SubscriberList[]
+  campaignLists CampaignList[]
+
+  @@map("lists")
+}
+
+model Subscriber {
+  id        Int              @id @default(autoincrement())
+  uuid      String           @unique @default(uuid())
+  tenantId  Int              @map("tenant_id")
+  email     String
+  name      String
+  attribs   Json             @default("{}")
+  status    SubscriberStatus @default(enabled)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lists         SubscriberList[]
+  bounces       Bounce[]
+  views         CampaignView[]
+  clicks        LinkClick[]
+  campaignSends CampaignSend[]
+
+  @@unique([tenantId, email])
+  @@map("subscribers")
+}
+
+model SubscriberList {
+  subscriberId Int                @map("subscriber_id")
+  listId       Int                @map("list_id")
+  status       SubscriptionStatus @default(unconfirmed)
+  meta         Json               @default("{}")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  subscriber Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  list       List       @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@id([subscriberId, listId])
+  @@map("subscriber_lists")
+}
+
+model Template {
+  id         Int          @id @default(autoincrement())
+  tenantId   Int          @map("tenant_id")
+  name       String
+  type       TemplateType @default(campaign)
+  subject    String?
+  body       String
+  bodySource Json?        @map("body_source")
+  isDefault  Boolean      @default(false) @map("is_default")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+
+  @@map("templates")
+}
+
+model Campaign {
+  id          Int            @id @default(autoincrement())
+  uuid        String         @unique @default(uuid())
+  tenantId    Int            @map("tenant_id")
+  type        CampaignType   @default(regular)
+  name        String
+  subject     String
+  fromEmail   String         @map("from_email")
+  body        String
+  altbody     String?
+  contentType ContentType    @default(richtext) @map("content_type")
+  status      CampaignStatus @default(draft)
+  sendAt      DateTime?      @map("send_at")
+  tags        String[]
+  messenger   String         @default("email")
+  // Ad-hoc recipients addressed directly by e-mail (a single person, or a
+  // hand-typed few) as an alternative/addition to targeting `lists`.
+  toEmails    String[]       @default([]) @map("to_emails")
+  cc          String[]       @default([])
+  bcc         String[]       @default([])
+  templateId  Int?           @map("template_id")
+  template    Template?      @relation(fields: [templateId], references: [id])
+  archive     Boolean        @default(false)
+  archiveSlug String?        @map("archive_slug")
+  toSend      Int            @default(0) @map("to_send")
+  sent        Int            @default(0)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lists   CampaignList[]
+  views   CampaignView[]
+  clicks  LinkClick[]
+  bounces Bounce[]
+  sends   CampaignSend[]
+
+  @@map("campaigns")
+}
+
+// One row per recipient a campaign has attempted to send to — this is both
+// the dedupe record (a paused/resumed/warmup-capped campaign skips anyone
+// already here) AND the delivery log (status + error surfaced in the UI).
+// Keyed by e-mail (not subscriberId) since ad-hoc recipients (typed directly
+// on the campaign, see Campaign.toEmails) have no Subscriber row at all.
+model CampaignSend {
+  id           Int        @id @default(autoincrement())
+  campaignId   Int        @map("campaign_id")
+  email        String
+  subscriberId Int?       @map("subscriber_id")
+  status       SendStatus @default(sent)
+  error        String?
+  sentAt       DateTime   @default(now()) @map("sent_at")
+
+  campaign   Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  subscriber Subscriber? @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, email])
+  @@map("campaign_sends")
+}
+
+model CampaignList {
+  campaignId Int    @map("campaign_id")
+  listId     Int    @map("list_id")
+  listName   String @map("list_name")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  list     List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, listId])
+  @@map("campaign_lists")
+}
+
+model Media {
+  id            Int      @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
+  tenantId      Int      @map("tenant_id")
+  filename      String
+  thumbFilename String?  @map("thumb_filename")
+  contentType   String   @map("content_type")
+  provider      String   @default("filesystem")
+  meta          Json     @default("{}")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("media")
+}
+
+model Bounce {
+  id           Int        @id @default(autoincrement())
+  tenantId     Int        @map("tenant_id")
+  subscriberId Int        @map("subscriber_id")
+  campaignId   Int?       @map("campaign_id")
+  type         BounceType
+  source       String
+  meta         Json       @default("{}")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscriber Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  campaign   Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@map("bounces")
+}
+
+// Global (per-tenant) do-not-send list. Checked before every send — campaign
+// *and* ad-hoc/tx recipients alike — regardless of whether the address has a
+// Subscriber row. Populated automatically by bounce thresholds, unsubscribes,
+// and manual blocklisting.
+model Suppression {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int      @map("tenant_id")
+  email     String
+  reason    String // bounce | complaint | unsubscribe | manual
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@map("suppressions")
+}
+
+model Link {
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
+  tenantId  Int      @map("tenant_id")
+  url       String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clicks LinkClick[]
+
+  @@unique([tenantId, url])
+  @@map("links")
+}
+
+model CampaignView {
+  id           Int      @id @default(autoincrement())
+  campaignId   Int      @map("campaign_id")
+  subscriberId Int?     @map("subscriber_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  campaign   Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  subscriber Subscriber? @relation(fields: [subscriberId], references: [id], onDelete: SetNull)
+
+  @@map("campaign_views")
+}
+
+model LinkClick {
+  id           Int      @id @default(autoincrement())
+  linkId       Int      @map("link_id")
+  campaignId   Int      @map("campaign_id")
+  subscriberId Int?     @map("subscriber_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  link       Link        @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  campaign   Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  subscriber Subscriber? @relation(fields: [subscriberId], references: [id], onDelete: SetNull)
+
+  @@map("link_clicks")
+}
+
+model Setting {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int      @map("tenant_id")
+  key       String
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@map("settings")
+}
+
+// ---------------------------------------------------------------------------
+// Sending domains + mailboxes
+// ---------------------------------------------------------------------------
+
+model Domain {
+  id              Int      @id @default(autoincrement())
+  uuid            String   @unique @default(uuid())
+  tenantId        Int      @map("tenant_id")
+  domain          String   @unique // a real DNS name can only belong to one tenant
+  dkimSelector    String   @default("mail") @map("dkim_selector")
+  // Warmup: sending ramps up daily from warmupStartedAt instead of allowing
+  // full volume on day one — protects a fresh IP/domain's reputation.
+  warmupStartedAt DateTime @default(now()) @map("warmup_started_at")
+  maxDailyCap     Int      @default(5000) @map("max_daily_cap")
+
+  // DNS verification — set by the "Verify DNS" action (live DNS lookups).
+  spfStatus      DnsCheckStatus @default(pending) @map("spf_status")
+  dkimStatus     DnsCheckStatus @default(pending) @map("dkim_status")
+  dmarcStatus    DnsCheckStatus @default(pending) @map("dmarc_status")
+  mxStatus       DnsCheckStatus @default(pending) @map("mx_status")
+  lastVerifiedAt DateTime?      @map("last_verified_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  mailboxes  Mailbox[]
+  sendCounts DomainSendCount[]
+
+  @@map("domains")
+}
+
+// One row per (domain, calendar day) — tracks how many messages have gone
+// out today so the warmup ramp can be enforced.
+model DomainSendCount {
+  id       Int    @id @default(autoincrement())
+  domainId Int    @map("domain_id")
+  date     String // YYYY-MM-DD (UTC)
+  count    Int    @default(0)
+
+  domain Domain @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([domainId, date])
+  @@map("domain_send_counts")
+}
+
+// A real sending mailbox on a verified domain — e.g. info@marketing.co.
+// `passwordHash` is for SMTP-AUTH (so external tools/clients can also send
+// as this address); it is not an IMAP/POP inbox — this app is outbound-only,
+// matching the self-hosted MTA's direct-send (not receive-and-store) design.
+model Mailbox {
+  id           Int      @id @default(autoincrement())
+  uuid         String   @unique @default(uuid())
+  tenantId     Int      @map("tenant_id")
+  domainId     Int      @map("domain_id")
+  email        String   @unique // tied to a globally-unique Domain, so globally unique too
+  name         String
+  passwordHash String?  @map("password_hash")
+  enabled      Boolean  @default(true)
+  dailyCap     Int      @default(100) @map("daily_cap")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  domain     Domain            @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  users      UserMailbox[]
+  sendCounts MailboxSendCount[]
+
+  @@map("mailboxes")
+}
+
+model MailboxSendCount {
+  id        Int    @id @default(autoincrement())
+  mailboxId Int    @map("mailbox_id")
+  date      String // YYYY-MM-DD (UTC)
+  count     Int    @default(0)
+
+  mailbox Mailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+
+  @@unique([mailboxId, date])
+  @@map("mailbox_send_counts")
+}
+
+model UserMailbox {
+  userId    Int @map("user_id")
+  mailboxId Int @map("mailbox_id")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mailbox Mailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+
+  @@id([userId, mailboxId])
+  @@map("user_mailboxes")
+}

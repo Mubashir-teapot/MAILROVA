@@ -1,0 +1,34 @@
+import { Router } from "express";
+import { authRoutes } from "../modules/auth/auth.routes";
+import { usersRoutes } from "../modules/users/users.routes";
+import { rolesRoutes } from "../modules/roles/roles.routes";
+import { listsRoutes } from "../modules/lists/lists.routes";
+import { subscribersRoutes } from "../modules/subscribers/subscribers.routes";
+import { campaignsRoutes } from "../modules/campaigns/campaigns.routes";
+import { templatesRoutes } from "../modules/templates/templates.routes";
+import { mediaRoutes } from "../modules/media/media.routes";
+import { bouncesRoutes } from "../modules/bounces/bounces.routes";
+import { settingsRoutes } from "../modules/settings/settings.routes";
+import { txRoutes } from "../modules/tx/tx.routes";
+import { importRoutes } from "../modules/import/import.routes";
+import { publicRoutes } from "../modules/public/public.routes";
+import { domainsRoutes } from "../modules/domains/domains.routes";
+import { mailboxesRoutes } from "../modules/mailboxes/mailboxes.routes";
+
+export const apiRouter = Router();
+
+apiRouter.use("/auth", authRoutes);
+apiRouter.use("/users", usersRoutes);
+apiRouter.use("/roles", rolesRoutes);
+apiRouter.use("/lists", listsRoutes);
+apiRouter.use("/subscribers", subscribersRoutes);
+apiRouter.use("/campaigns", campaignsRoutes);
+apiRouter.use("/templates", templatesRoutes);
+apiRouter.use("/media", mediaRoutes);
+apiRouter.use("/bounces", bouncesRoutes);
+apiRouter.use("/settings", settingsRoutes);
+apiRouter.use("/tx", txRoutes);
+apiRouter.use("/import", importRoutes);
+apiRouter.use("/public", publicRoutes);
+apiRouter.use("/domains", domainsRoutes);
+apiRouter.use("/mailboxes", mailboxesRoutes);

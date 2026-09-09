@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import path from "path";
 import { env } from "./config/env";
+import { prisma } from "./config/prisma";
 import { apiRouter } from "./routes";
 import { platformRouter } from "./modules/platform/platform.routes";
 import { bounceWebhooksRoutes } from "./modules/bounces/bounces.webhooks.routes";
@@ -30,7 +31,21 @@ app.use("/webhooks/bounce", publicRateLimit, bounceWebhooksRoutes);
 app.use(express.json());
 app.use("/uploads", express.static(path.resolve(env.uploadDir)));
 
+// Liveness — process is up, nothing more. Never fails on its own.
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+
+// Readiness — can this instance actually serve traffic right now. Checked
+// by an orchestrator/load balancer before routing to it, distinct from
+// liveness: a healthy-but-not-ready instance (DB unreachable) should be
+// taken out of rotation, not restarted.
+app.get("/api/ready", async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: "ready" });
+  } catch (err) {
+    res.status(503).json({ status: "not ready", error: err instanceof Error ? err.message : String(err) });
+  }
+});
 
 // Platform-admin routes manage tenants themselves and are deliberately NOT
 // tenant-scoped (a platform admin isn't a member of any one tenant).

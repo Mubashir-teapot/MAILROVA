@@ -5,6 +5,7 @@ listmonk-master/
 .env
 .env.*
 !.env.example
+!.env.test.example
 
 # Node
 node_modules/

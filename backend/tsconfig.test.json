@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    // Typecheck-only config (vitest runs tests via its own esbuild
+    // transform, not this file) — overridden to ESNext so top-level
+    // `await` in test files (used for post-vi.mock() imports) typechecks;
+    // the real src/ build (tsconfig.json) still targets CommonJS/ES2020.
+    "module": "esnext",
+    "moduleResolution": "bundler"
+  },
+  "include": ["src", "tests"]
+}

@@ -153,6 +153,24 @@ organization on its own (sub)domain:
   `S3_ENDPOINT=https://<accountid>.r2.cloudflarestorage.com` and
   `S3_FORCE_PATH_STYLE=true`)
 
+## Tests
+
+Backend integration tests run against a real (disposable) Postgres database
+— the same `db` service, a different database:
+
+```bash
+docker compose exec db psql -U mailrova -c "CREATE DATABASE mailrova_test"   # once
+cp backend/.env.test.example backend/.env.test                               # once, edit if needed
+docker compose exec backend npm test
+```
+
+(Runs from inside the container since `db` publishes no host port — see
+"Production deployment" below.) Priority coverage: tenant isolation (every
+resource type, the top-priority case), campaign retry/dedup logic, the
+suppression list, auth (session + API key), and DNS verification. This is a
+focused suite on the areas that were explicitly hardened, not exhaustive
+coverage of every endpoint.
+
 ## Project layout
 
 ```

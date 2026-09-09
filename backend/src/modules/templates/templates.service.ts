@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { ApiError } from "../../common/utils/ApiError";
 import { renderTemplate } from "../../common/utils/renderTemplate";
+import { sendMail } from "../../common/mail/mailer";
 import { templatesRepository } from "./templates.repository";
 
 export interface TemplateInput {
@@ -63,5 +64,21 @@ export const templatesService = {
   async preview(tenantId: number, id: number, sampleData: Record<string, unknown>) {
     const tpl = await templatesService.get(tenantId, id);
     return { subject: tpl.subject ? renderTemplate(tpl.subject, sampleData) : undefined, body: renderTemplate(tpl.body, sampleData) };
+  },
+
+  // Bypasses suppression/caps entirely — this is an explicit, one-off test
+  // send the admin asked for, not a real campaign/tx recipient.
+  async sendTest(tenantId: number, id: number, toEmail: string) {
+    const tpl = await templatesService.get(tenantId, id);
+    const sampleData = {
+      Subscriber: { email: toEmail, name: "Preview" },
+      Campaign: { name: tpl.name, subject: tpl.subject ?? "" },
+      UnsubscribeUrl: "#",
+    };
+    await sendMail({
+      to: toEmail,
+      subject: `[TEST] ${tpl.subject ? renderTemplate(tpl.subject, sampleData) : tpl.name}`,
+      html: renderTemplate(tpl.body, sampleData),
+    });
   },
 };

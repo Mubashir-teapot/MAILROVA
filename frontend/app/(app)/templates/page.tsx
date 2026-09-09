@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/api/client";
 import { TrashIcon } from "@/components/icons";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 interface Template {
   id: number;
@@ -25,7 +26,7 @@ export default function Templates() {
   }, []);
 
   async function handleDelete(id: number) {
-    if (!confirm("Delete this template?")) return;
+    if (!(await confirmDialog("Delete this template?"))) return;
     await api.delete(`/templates/${id}`);
     await load();
   }

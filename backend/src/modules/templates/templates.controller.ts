@@ -42,4 +42,10 @@ export const templatesController = {
     const data = z.record(z.unknown()).parse(req.body);
     res.json(await templatesService.preview(req.user!.tenantId, Number(req.params.id), data));
   },
+
+  async sendTest(req: Request, res: Response) {
+    const { email } = z.object({ email: z.string().email() }).parse(req.body);
+    await templatesService.sendTest(req.user!.tenantId, Number(req.params.id), email);
+    res.json({ data: true });
+  },
 };

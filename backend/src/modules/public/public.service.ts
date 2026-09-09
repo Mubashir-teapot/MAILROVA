@@ -51,7 +51,7 @@ export const publicService = {
   // One-click unsubscribe from the link embedded in every campaign send (see
   // campaigns.service.ts) — a global opt-out (Suppression), not per-list,
   // since that's what the List-Unsubscribe header/link is expected to do.
-  async unsubscribeByToken(tenantId: number, email: string, token: string) {
+  async unsubscribeByToken(tenantId: number, email: string, token: string, campaignUuid?: string) {
     if (!verifyUnsubscribeToken(tenantId, email, token)) throw ApiError.unauthorized("Invalid unsubscribe link");
 
     const lower = email.toLowerCase();
@@ -64,6 +64,19 @@ export const publicService = {
     const subscriber = await prisma.subscriber.findUnique({ where: { tenantId_email: { tenantId, email: lower } } });
     if (subscriber) {
       await prisma.subscriberList.updateMany({ where: { subscriberId: subscriber.id }, data: { status: "unsubscribed" } });
+    }
+
+    // Attribution only — Suppression above is what actually stops future
+    // sends. A second unsubscribe-link click for a different campaign, once
+    // already suppressed, would otherwise have nowhere to record which
+    // campaign drove it (Suppression dedupes per tenant+email).
+    if (campaignUuid) {
+      const campaign = await prisma.campaign.findFirst({ where: { uuid: campaignUuid, tenantId }, select: { id: true } });
+      if (campaign) {
+        await prisma.campaignUnsubscribe
+          .create({ data: { campaignId: campaign.id, subscriberId: subscriber?.id, email: lower } })
+          .catch(() => undefined);
+      }
     }
   },
 };

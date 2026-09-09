@@ -24,6 +24,8 @@ export interface CampaignInput {
   toEmails?: string[];
   cc?: string[];
   bcc?: string[];
+  trackOpens?: boolean;
+  trackClicks?: boolean;
 }
 
 // Mirrors the source app's campaign state machine (see FEATURES.md §5).
@@ -65,6 +67,11 @@ export const campaignsService = {
     return campaignsRepository.deliveryLog(tenantId, id);
   },
 
+  async stats(tenantId: number, id: number) {
+    await campaignsService.get(tenantId, id); // 404s if not owned by this tenant
+    return campaignsRepository.stats(id);
+  },
+
   create(tenantId: number, input: CampaignInput) {
     if (!input.listIds.length && !input.toEmails?.length) {
       throw ApiError.badRequest("Provide at least one list or recipient e-mail");
@@ -84,6 +91,8 @@ export const campaignsService = {
         toEmails: input.toEmails ?? [],
         cc: input.cc ?? [],
         bcc: input.bcc ?? [],
+        trackOpens: input.trackOpens ?? true,
+        trackClicks: input.trackClicks ?? true,
         sendAt: input.sendAt ? new Date(input.sendAt) : undefined,
         status: input.sendAt ? "scheduled" : "draft",
       },
@@ -111,6 +120,8 @@ export const campaignsService = {
         toEmails: input.toEmails,
         cc: input.cc,
         bcc: input.bcc,
+        trackOpens: input.trackOpens,
+        trackClicks: input.trackClicks,
         sendAt: input.sendAt ? new Date(input.sendAt) : undefined,
       },
       input.listIds

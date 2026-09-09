@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { MediaIcon, TrashIcon, UploadIcon } from "@/components/icons";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 interface Media {
   id: number;
@@ -33,7 +34,7 @@ export default function Media() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Delete this file?")) return;
+    if (!(await confirmDialog("Delete this file?"))) return;
     await api.delete(`/media/${id}`);
     await load();
   }

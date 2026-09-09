@@ -10,7 +10,7 @@ up.
 
 **Please don't open a public GitHub issue for a security report.**
 
-Email **security@ua-technologies.com** with:
+Email **mubashir@ua-technologies.com** with:
 - What you found and where (file/endpoint/component).
 - Steps to reproduce, or a proof of concept if you have one.
 - The potential impact as you see it.

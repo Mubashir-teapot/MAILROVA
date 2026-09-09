@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/api/client";
+import { EmptyState, Loading } from "@/components/States";
 
 interface AuditLogEntry {
   id: number;
@@ -40,9 +41,11 @@ export default function AuditLog() {
       </p>
 
       {loading ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400">Loading…</p>
+        <Loading />
       ) : entries.length === 0 ? (
-        <div className="card text-sm text-slate-500 dark:text-slate-400">Nothing logged yet.</div>
+        <div className="card">
+          <EmptyState message="Nothing logged yet." />
+        </div>
       ) : (
         <div className="card overflow-x-auto p-0">
           <table className="table-base">

@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { TrashIcon } from "@/components/icons";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 interface Domain {
   id: number;
@@ -65,7 +66,7 @@ export default function Mailboxes() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Delete this mailbox?")) return;
+    if (!(await confirmDialog("Delete this mailbox?"))) return;
     await api.delete(`/mailboxes/${id}`);
     await load();
   }

@@ -128,4 +128,23 @@ export const campaignsRepository = {
       take: 500,
     });
   },
+
+  async stats(campaignId: number) {
+    const [byStatus, opens, clicks, unsubscribes] = await Promise.all([
+      prisma.campaignSend.groupBy({ by: ["status"], where: { campaignId }, _count: true }),
+      prisma.campaignView.count({ where: { campaignId } }),
+      prisma.linkClick.count({ where: { campaignId } }),
+      prisma.campaignUnsubscribe.count({ where: { campaignId } }),
+    ]);
+    const counts = Object.fromEntries(byStatus.map((s) => [s.status, s._count])) as Partial<Record<SendStatus, number>>;
+    return {
+      sent: counts.sent ?? 0,
+      retrying: counts.failed ?? 0,
+      undeliverable: counts.undeliverable ?? 0,
+      bounced: counts.bounced ?? 0,
+      opens,
+      clicks,
+      unsubscribes,
+    };
+  },
 };

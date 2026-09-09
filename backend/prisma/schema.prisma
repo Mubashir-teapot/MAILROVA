@@ -310,6 +310,7 @@ model Subscriber {
   views         CampaignView[]
   clicks        LinkClick[]
   campaignSends CampaignSend[]
+  unsubscribes  CampaignUnsubscribe[]
 
   @@unique([tenantId, email])
   @@map("subscribers")
@@ -374,17 +375,39 @@ model Campaign {
   archiveSlug String?        @map("archive_slug")
   toSend      Int            @default(0) @map("to_send")
   sent        Int            @default(0)
+  trackOpens  Boolean        @default(true) @map("track_opens")
+  trackClicks Boolean        @default(true) @map("track_clicks")
   createdAt   DateTime       @default(now()) @map("created_at")
   updatedAt   DateTime       @updatedAt @map("updated_at")
 
-  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  lists   CampaignList[]
-  views   CampaignView[]
-  clicks  LinkClick[]
-  bounces Bounce[]
-  sends   CampaignSend[]
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lists        CampaignList[]
+  views        CampaignView[]
+  clicks       LinkClick[]
+  bounces      Bounce[]
+  sends        CampaignSend[]
+  unsubscribes CampaignUnsubscribe[]
 
   @@map("campaigns")
+}
+
+// A campaign-attributed unsubscribe — separate from the global Suppression
+// table (which dedupes per tenant+email and so can't attribute a second
+// unsubscribe-link click to a *different* campaign once already
+// suppressed). Written whenever the unsubscribe link carries a `campaign`
+// query param (see campaigns.worker.ts), purely for the campaign analytics
+// stat row — Suppression remains the actual enforcement mechanism.
+model CampaignUnsubscribe {
+  id           Int      @id @default(autoincrement())
+  campaignId   Int      @map("campaign_id")
+  subscriberId Int?     @map("subscriber_id")
+  email        String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  campaign   Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  subscriber Subscriber? @relation(fields: [subscriberId], references: [id], onDelete: SetNull)
+
+  @@map("campaign_unsubscribes")
 }
 
 // One row per recipient a campaign has attempted to send to — this is both

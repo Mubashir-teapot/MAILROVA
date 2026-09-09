@@ -6,6 +6,7 @@ import { ReactNode } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { useTheme } from "@/theme/ThemeContext";
 import { LogoMark } from "./Logo";
+import { ConfirmDialogHost } from "./ConfirmDialog";
 import {
   AtSignIcon,
   AuditLogIcon,
@@ -101,6 +102,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <main className="flex-1 p-6">
         <div className="mx-auto max-w-6xl">{children}</div>
       </main>
+      <ConfirmDialogHost />
     </div>
   );
 }

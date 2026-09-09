@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { TrashIcon } from "@/components/icons";
+import { confirmDialog } from "@/components/ConfirmDialog";
+import { EmptyState, Loading } from "@/components/States";
 
 interface ApiKey {
   id: number;
@@ -50,7 +52,7 @@ export default function ApiKeys() {
   }
 
   async function handleRevoke(id: number) {
-    if (!confirm("Revoke this API key? Anything using it will stop working immediately.")) return;
+    if (!(await confirmDialog("Revoke this API key? Anything using it will stop working immediately."))) return;
     await api.delete(`/api-keys/${id}`);
     await load();
   }
@@ -97,9 +99,11 @@ export default function ApiKeys() {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {loading ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400">Loading…</p>
+        <Loading />
       ) : keys.length === 0 ? (
-        <div className="card text-sm text-slate-500 dark:text-slate-400">No API keys yet.</div>
+        <div className="card">
+          <EmptyState message="No API keys yet." />
+        </div>
       ) : (
         <div className="card overflow-x-auto p-0">
           <table className="table-base">

@@ -4,6 +4,7 @@ import { sendMail } from "../../common/mail/mailer";
 import { renderTemplate } from "../../common/utils/renderTemplate";
 import { makeUnsubscribeToken } from "../../common/utils/unsubscribeToken";
 import { makeVerpAddress } from "../../common/utils/verp";
+import { injectTracking } from "../../common/utils/trackingRewrite";
 import { env } from "../../config/env";
 import { prisma } from "../../config/prisma";
 import { domainsService } from "../domains/domains.service";
@@ -82,13 +83,25 @@ async function handleSendEmail(job: SendEmailJobData, retryCount: number, retryL
     const unsubscribeUrl = `${env.publicUrl}/api/public/unsubscribe-link?email=${encodeURIComponent(email)}&token=${unsubToken}&campaign=${campaign.uuid}`;
     const data = { Subscriber: subscriber, Campaign: campaign, UnsubscribeUrl: unsubscribeUrl };
 
+    let html = campaign.contentType === "plain" ? undefined : renderTemplate(campaign.body, data);
+    if (html && (campaign.trackOpens || campaign.trackClicks)) {
+      html = await injectTracking(html, {
+        tenantId,
+        campaignUuid: campaign.uuid,
+        subscriberUuid: subscriber?.uuid ?? "",
+        publicUrl: env.publicUrl,
+        trackOpens: campaign.trackOpens,
+        trackClicks: campaign.trackClicks,
+      });
+    }
+
     await sendMail({
       to: email,
       from: campaign.fromEmail,
       cc: campaign.cc,
       bcc: campaign.bcc,
       subject: renderTemplate(campaign.subject, data),
-      html: campaign.contentType === "plain" ? undefined : renderTemplate(campaign.body, data),
+      html,
       text: campaign.contentType === "plain" ? renderTemplate(campaign.body, data) : campaign.altbody ?? undefined,
       headers: {
         "X-Campaign-UUID": campaign.uuid,

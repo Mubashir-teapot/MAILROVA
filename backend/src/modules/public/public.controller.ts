@@ -10,7 +10,7 @@ const subscribeSchema = z.object({
 
 const unsubscribeSchema = z.object({ listUuid: z.string().uuid() });
 
-const unsubscribeLinkSchema = z.object({ email: z.string().email(), token: z.string().min(1) });
+const unsubscribeLinkSchema = z.object({ email: z.string().email(), token: z.string().min(1), campaign: z.string().uuid().optional() });
 
 export const publicController = {
   async lists(req: Request, res: Response) {
@@ -34,8 +34,8 @@ export const publicController = {
   },
 
   async unsubscribeByLink(req: Request, res: Response) {
-    const { email, token } = unsubscribeLinkSchema.parse(req.query);
-    await publicService.unsubscribeByToken(req.tenantId!, email, token);
+    const { email, token, campaign } = unsubscribeLinkSchema.parse(req.query);
+    await publicService.unsubscribeByToken(req.tenantId!, email, token, campaign);
     res.json({ data: true });
   },
 };

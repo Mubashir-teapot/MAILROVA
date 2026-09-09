@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { TrashIcon } from "@/components/icons";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 interface Domain {
   id: number;
@@ -62,7 +63,7 @@ export default function Domains() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Remove this domain? Mailboxes on it will stop working.")) return;
+    if (!(await confirmDialog("Remove this domain? Mailboxes on it will stop working."))) return;
     await api.delete(`/domains/${id}`);
     if (openId === id) setOpenId(null);
     await load();

@@ -10,6 +10,7 @@ campaignsRoutes.use(requireAuth, requirePermission("campaigns:get_all", "campaig
 campaignsRoutes.get("/", asyncHandler(campaignsController.list));
 campaignsRoutes.get("/:id", asyncHandler(campaignsController.get));
 campaignsRoutes.get("/:id/delivery-log", asyncHandler(campaignsController.deliveryLog));
+campaignsRoutes.get("/:id/stats", asyncHandler(campaignsController.stats));
 campaignsRoutes.post("/", requirePermission("campaigns:manage_all"), asyncHandler(campaignsController.create));
 campaignsRoutes.put("/:id", requirePermission("campaigns:manage_all"), asyncHandler(campaignsController.update));
 campaignsRoutes.delete("/:id", requirePermission("campaigns:manage_all"), asyncHandler(campaignsController.remove));

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { TrashIcon } from "./icons";
+import { confirmDialog } from "./ConfirmDialog";
+import { EmptyState, Loading } from "./States";
 
 export interface Column {
   key: string;
@@ -58,7 +60,7 @@ export function CrudTable({ resourcePath, columns, formFields, extractList }: Pr
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Delete this item?")) return;
+    if (!(await confirmDialog("Delete this item?"))) return;
     await api.delete(`${resourcePath}/${id}`);
     await load();
   }
@@ -99,7 +101,7 @@ export function CrudTable({ resourcePath, columns, formFields, extractList }: Pr
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {loading ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400">Loading…</p>
+        <Loading />
       ) : (
         <div className="card overflow-x-auto p-0">
           <table className="table-base">
@@ -128,6 +130,13 @@ export function CrudTable({ resourcePath, columns, formFields, extractList }: Pr
                   </td>
                 </tr>
               ))}
+              {!rows.length && (
+                <tr>
+                  <td colSpan={columns.length + 1}>
+                    <EmptyState message="Nothing here yet." />
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

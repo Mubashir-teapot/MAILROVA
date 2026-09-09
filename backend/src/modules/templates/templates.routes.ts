@@ -10,6 +10,7 @@ templatesRoutes.use(requireAuth, requirePermission("templates:get", "templates:m
 templatesRoutes.get("/", asyncHandler(templatesController.list));
 templatesRoutes.get("/:id", asyncHandler(templatesController.get));
 templatesRoutes.post("/:id/preview", asyncHandler(templatesController.preview));
+templatesRoutes.post("/:id/test-send", requirePermission("templates:manage"), asyncHandler(templatesController.sendTest));
 templatesRoutes.post("/", requirePermission("templates:manage"), asyncHandler(templatesController.create));
 templatesRoutes.put("/:id", requirePermission("templates:manage"), asyncHandler(templatesController.update));
 templatesRoutes.delete("/:id", requirePermission("templates:manage"), asyncHandler(templatesController.remove));

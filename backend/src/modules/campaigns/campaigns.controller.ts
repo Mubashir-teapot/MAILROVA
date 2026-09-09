@@ -20,6 +20,8 @@ const campaignSchema = z.object({
   toEmails: z.array(z.string().email()).optional(),
   cc: z.array(z.string().email()).optional(),
   bcc: z.array(z.string().email()).optional(),
+  trackOpens: z.boolean().optional(),
+  trackClicks: z.boolean().optional(),
 });
 
 const statusSchema = z.object({
@@ -37,6 +39,10 @@ export const campaignsController = {
 
   async deliveryLog(req: Request, res: Response) {
     res.json(await campaignsService.deliveryLog(req.user!.tenantId, Number(req.params.id)));
+  },
+
+  async stats(req: Request, res: Response) {
+    res.json(await campaignsService.stats(req.user!.tenantId, Number(req.params.id)));
   },
 
   async create(req: Request, res: Response) {

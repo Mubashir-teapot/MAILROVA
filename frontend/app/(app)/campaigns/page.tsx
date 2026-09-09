@@ -21,6 +21,16 @@ interface DeliveryLogEntry {
   sentAt: string;
 }
 
+interface CampaignStats {
+  sent: number;
+  retrying: number;
+  undeliverable: number;
+  bounced: number;
+  opens: number;
+  clicks: number;
+  unsubscribes: number;
+}
+
 const NEXT_STATUS: Record<string, string[]> = {
   draft: ["running"],
   scheduled: ["running", "cancelled"],
@@ -51,6 +61,7 @@ export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [openLogId, setOpenLogId] = useState<number | null>(null);
   const [log, setLog] = useState<DeliveryLogEntry[] | null>(null);
+  const [stats, setStats] = useState<CampaignStats | null>(null);
 
   async function load() {
     const { data } = await api.get("/campaigns");
@@ -73,8 +84,10 @@ export default function Campaigns() {
     }
     setOpenLogId(id);
     setLog(null);
-    const { data } = await api.get(`/campaigns/${id}/delivery-log`);
-    setLog(data);
+    setStats(null);
+    const [logRes, statsRes] = await Promise.all([api.get(`/campaigns/${id}/delivery-log`), api.get(`/campaigns/${id}/stats`)]);
+    setLog(logRes.data);
+    setStats(statsRes.data);
   }
 
   return (
@@ -126,6 +139,17 @@ export default function Campaigns() {
                 {openLogId === c.id && (
                   <tr>
                     <td colSpan={6} className="bg-slate-50 p-0 dark:bg-slate-900/60">
+                      {stats && (
+                        <div className="flex flex-wrap gap-x-6 gap-y-2 border-b border-slate-200 px-4 py-3 text-sm dark:border-white/10">
+                          <Stat label="Sent" value={stats.sent} />
+                          <Stat label="Retrying" value={stats.retrying} />
+                          <Stat label="Undeliverable" value={stats.undeliverable} />
+                          <Stat label="Bounced" value={stats.bounced} />
+                          <Stat label="Opens" value={stats.opens} />
+                          <Stat label="Clicks" value={stats.clicks} />
+                          <Stat label="Unsubscribes" value={stats.unsubscribes} />
+                        </div>
+                      )}
                       {!log ? (
                         <p className="px-4 py-3 text-sm text-slate-400">Loading…</p>
                       ) : log.length ? (
@@ -171,6 +195,15 @@ export default function Campaigns() {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <span className="font-semibold text-slate-900 dark:text-slate-100">{value}</span>
+      <span className="text-slate-500 dark:text-slate-400">{label}</span>
     </div>
   );
 }

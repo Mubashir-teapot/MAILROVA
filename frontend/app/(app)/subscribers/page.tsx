@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { CloseIcon, TrashIcon } from "@/components/icons";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 interface ListOption {
   id: number;
@@ -79,7 +80,7 @@ export default function Subscribers() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Delete this subscriber?")) return;
+    if (!(await confirmDialog("Delete this subscriber?"))) return;
     await api.delete(`/subscribers/${id}`);
     await load();
   }

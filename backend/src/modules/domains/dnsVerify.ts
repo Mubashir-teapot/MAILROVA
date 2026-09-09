@@ -58,3 +58,47 @@ async function verifyMx(domain: string): Promise<boolean> {
     return false;
   }
 }
+
+export interface PtrCheckResult {
+  status: DnsCheckStatus;
+  ptrHostname: string | null;
+  note: string;
+}
+
+// PTR/reverse-DNS is a property of the server's IP, set by the hosting
+// provider at the network level — not something a DNS zone record or a
+// "Verify"/"Fix" button here can change, unlike SPF/DKIM/DMARC/MX above.
+// Forward-confirms the PTR hostname's own A record resolves back to the
+// same IP (FCrDNS) — what most receiving mail servers actually check, not
+// just that a PTR exists at all.
+export async function verifyPtr(serverIp: string | undefined): Promise<PtrCheckResult> {
+  if (!serverIp) {
+    return { status: "pending", ptrHostname: null, note: "Set SERVER_PUBLIC_IP in .env to check this." };
+  }
+
+  let ptrHostname: string | null;
+  try {
+    const hostnames = await dns.reverse(serverIp);
+    ptrHostname = hostnames[0] ?? null;
+  } catch {
+    ptrHostname = null;
+  }
+  if (!ptrHostname) {
+    return { status: "failed", ptrHostname: null, note: `No PTR record found for ${serverIp} — ask your hosting provider to set one.` };
+  }
+
+  try {
+    const forward = await dns.resolve4(ptrHostname);
+    if (!forward.includes(serverIp)) {
+      return {
+        status: "failed",
+        ptrHostname,
+        note: `PTR points to "${ptrHostname}", but that hostname's A record doesn't resolve back to ${serverIp} (not forward-confirmed).`,
+      };
+    }
+  } catch {
+    return { status: "failed", ptrHostname, note: `PTR points to "${ptrHostname}", but it has no A record to forward-confirm against.` };
+  }
+
+  return { status: "verified", ptrHostname, note: "Forward-confirmed reverse DNS looks correct." };
+}

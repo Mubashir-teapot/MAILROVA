@@ -22,11 +22,19 @@ export interface SendMailInput {
   bcc?: string[];
   headers?: Record<string, string>;
   attachments?: { filename: string; content: Buffer; contentType?: string }[];
+  // VERP return-path (see campaigns.worker.ts) — the SMTP envelope sender
+  // (MAIL FROM), distinct from the visible "From:" header. When set, any
+  // bounce DSN the receiving server generates comes back to this unique
+  // address instead of `from`, which is how a bounce gets correlated back
+  // to the exact campaign+recipient that caused it (see mta/ + the
+  // /webhooks/bounce/postfix handler).
+  envelopeFrom?: string;
 }
 
 export async function sendMail(input: SendMailInput) {
   return transport.sendMail({
     from: input.from ?? env.smtp.fromEmail,
+    envelope: input.envelopeFrom ? { from: input.envelopeFrom, to: input.to } : undefined,
     to: input.to,
     cc: input.cc?.length ? input.cc : undefined,
     bcc: input.bcc?.length ? input.bcc : undefined,

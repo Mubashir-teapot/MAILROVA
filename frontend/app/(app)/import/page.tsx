@@ -18,6 +18,7 @@ interface ImportResult {
   total: number;
   imported: number;
   emailed: number;
+  skipped: number;
   errors: string[];
 }
 
@@ -158,6 +159,9 @@ export default function Import() {
             </span>
             <span>
               <strong className="text-slate-900 dark:text-slate-100">{result.emailed}</strong> emailed
+            </span>
+            <span>
+              <strong className="text-slate-900 dark:text-slate-100">{result.skipped}</strong> skipped (suppressed)
             </span>
           </div>
           {result.errors.length > 0 && (

@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
+import { simpleParser } from "mailparser";
 import { ApiError } from "../../common/utils/ApiError";
 import { env } from "../../config/env";
+import { prisma } from "../../config/prisma";
+import { parseVerpAddress } from "../../common/utils/verp";
 import { bouncesService } from "./bounces.service";
 
 function findHeaderValue(headers: { name: string; value: string }[] | undefined, name: string) {
@@ -103,7 +106,68 @@ export const bounceWebhooksController = {
 
     res.status(200).send("ok");
   },
+
+  // Self-hosted MTA path (see mta/ + queue/boss.ts's VERP envelope sender).
+  // Postfix pipes the raw bounce DSN it receives for a `bounce.{campaignId}.
+  // {email}@{BOUNCE_DOMAIN}` address to a small script that POSTs it here
+  // with that address in `?to=` — the address itself is what identifies the
+  // campaign+recipient (no need to parse "Original-Recipient" out of the
+  // DSN body), the DSN body is only used for the hard/soft classification.
+  async postfix(req: Request, res: Response) {
+    requireWebhookKey(req);
+
+    const to = typeof req.query.to === "string" ? req.query.to : "";
+    const parsed = parseVerpAddress(to);
+    if (!parsed) {
+      res.status(200).send("ignored: not a recognized bounce address");
+      return;
+    }
+
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: parsed.campaignId },
+      select: { tenantId: true, uuid: true },
+    });
+    if (!campaign) {
+      res.status(200).send("ignored: unknown campaign");
+      return;
+    }
+
+    const raw = req.body as Buffer;
+    const mail = await simpleParser(raw);
+    const { type, diagnostic } = classifyDsn(mail.attachments);
+
+    await bouncesService.record({
+      tenantId: campaign.tenantId,
+      email: parsed.email,
+      type,
+      source: "postfix",
+      campaignUuid: campaign.uuid,
+      meta: { diagnostic, subject: mail.subject },
+    });
+
+    res.status(200).send("ok");
+  },
 };
+
+// Parses the `message/delivery-status` MIME part (RFC 3464) a DSN carries —
+// `Action`/`Status`/`Diagnostic-Code` fields as plain `Key: value` lines.
+// Falls back to "soft" (never guess "hard"/suppress) if the part is missing
+// or doesn't parse, e.g. a non-standard bounce format.
+function classifyDsn(attachments: { contentType: string; content: Buffer }[]): { type: "hard" | "soft"; diagnostic: string } {
+  const part = attachments.find((a) => a.contentType === "message/delivery-status");
+  if (!part) return { type: "soft", diagnostic: "" };
+
+  const text = part.content.toString("utf-8");
+  const status = /^Status:\s*(\S+)/im.exec(text)?.[1];
+  const action = /^Action:\s*(\S+)/im.exec(text)?.[1];
+  const diagnostic = /^Diagnostic-Code:\s*(.+)$/im.exec(text)?.[1] ?? "";
+
+  // Enhanced status codes (RFC 3463): x.y.z where x=5 is permanent, x=4 is transient.
+  if (status?.startsWith("5.")) return { type: "hard", diagnostic };
+  if (status?.startsWith("4.")) return { type: "soft", diagnostic };
+  if (action?.toLowerCase() === "failed") return { type: "hard", diagnostic };
+  return { type: "soft", diagnostic };
+}
 
 function requireWebhookKey(req: Request) {
   if (!env.bounce.webhookKey) throw ApiError.forbidden("Bounce webhook not configured");

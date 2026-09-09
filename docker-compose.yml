@@ -34,10 +34,16 @@ services:
   # dedicated IP if the host has more than one. If you don't need to receive
   # bounces/replies on this domain, you can drop this `ports` block entirely
   # and outbound sending still works (Postfix can send without listening).
+  # Built from ./mta (extends boky/postfix) instead of used directly — adds
+  # bounce-DSN routing so a hard/soft bounce on a self-hosted send actually
+  # gets detected (see mta/README.md and the /webhooks/bounce/postfix
+  # handler). env_file gives forward-bounce.sh BACKEND_PORT/BOUNCE_WEBHOOK_KEY.
   mta:
-    image: boky/postfix
+    build:
+      context: ./mta
     container_name: mailrova-mta
     restart: unless-stopped
+    env_file: .env
     environment:
       ALLOWED_SENDER_DOMAINS: ""
       DKIM_AUTOGENERATE: "1"

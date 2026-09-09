@@ -1,0 +1,4 @@
+# Postfix regexp transport map. Routes VERP bounce addresses (see
+# backend/src/common/utils/verp.ts) to the mailrovabounce pipe transport
+# (defined in master.cf.append) instead of normal local delivery.
+/^bounce\.[0-9]+\.[A-Za-z0-9_-]+@/ mailrovabounce:

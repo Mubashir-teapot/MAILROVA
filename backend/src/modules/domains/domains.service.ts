@@ -1,14 +1,60 @@
+import { Domain } from "@prisma/client";
 import { ApiError } from "../../common/utils/ApiError";
 import { readDkimPublicKeyRecord, syncMtaDomains } from "../../common/docker/dockerService";
 import { env } from "../../config/env";
+import { prisma } from "../../config/prisma";
 import { domainsRepository } from "./domains.repository";
-import { verifyDomainDns } from "./dnsVerify";
-import { todaysCap, todayUtc } from "./warmup";
+import { verifyDomainDns, verifyPtr } from "./dnsVerify";
+import {
+  BOUNCE_RATE_HOLD_THRESHOLD,
+  COMPLAINT_RATE_HOLD_THRESHOLD,
+  MIN_VOLUME_FOR_RATE_CHECK,
+  RAMP_SCHEDULE,
+  todaysCap,
+  todayUtc,
+} from "./warmup";
+
+// Holds the warmup ramp at its current step (instead of advancing) if
+// yesterday's bounce/complaint rate for this domain crossed the threshold —
+// standard practice: a fresh IP/domain that starts bouncing needs volume
+// capped where it is, not pushed higher. Implemented by nudging
+// `warmupStartedAt` forward by exactly one day, which cancels out one day
+// of real elapsed time in todaysCap()'s calculation — no separate "current
+// ramp step" column needed.
+// ponytail: attributes bounces/complaints to a domain via
+// `campaign.fromEmail` — a tx send (no Campaign row) can't be attributed to
+// any domain this way, so it never counts toward a rate here. Add a
+// `fromDomain` column on Bounce directly if tx-send reputation needs to
+// factor in too.
+async function holdWarmupIfUnhealthy(domain: Domain): Promise<void> {
+  const daysSince = Math.floor((Date.now() - domain.warmupStartedAt.getTime()) / 86_400_000);
+  if (daysSince < 1 || daysSince >= RAMP_SCHEDULE.length) return; // nothing to evaluate yet, or ramp already done
+
+  const yesterday = todayUtc(new Date(Date.now() - 86_400_000));
+  const sentYesterday = await domainsRepository.getTodaySentCount(domain.id, yesterday);
+  if (sentYesterday < MIN_VOLUME_FOR_RATE_CHECK) return;
+
+  const start = new Date(`${yesterday}T00:00:00.000Z`);
+  const end = new Date(`${todayUtc()}T00:00:00.000Z`);
+  const fromDomainFilter = { campaign: { fromEmail: { endsWith: `@${domain.domain}` } }, createdAt: { gte: start, lt: end } };
+  const [bounces, complaints] = await Promise.all([
+    prisma.bounce.count({ where: { ...fromDomainFilter, type: { in: ["hard", "soft"] } } }),
+    prisma.bounce.count({ where: { ...fromDomainFilter, type: "complaint" } }),
+  ]);
+
+  const bounceRate = bounces / sentYesterday;
+  const complaintRate = complaints / sentYesterday;
+  if (bounceRate > BOUNCE_RATE_HOLD_THRESHOLD || complaintRate > COMPLAINT_RATE_HOLD_THRESHOLD) {
+    await domainsRepository.update(domain.tenantId, domain.id, {
+      warmupStartedAt: new Date(domain.warmupStartedAt.getTime() + 86_400_000),
+    });
+  }
+}
 
 const DOMAIN_RE = /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.[a-z0-9-]{1,63})+$/i;
 
 export interface DnsRecord {
-  type: "TXT" | "MX" | "A";
+  type: "TXT" | "MX" | "A" | "PTR";
   name: string;
   value: string;
   note?: string;
@@ -125,6 +171,19 @@ export const domainsService = {
       });
     }
 
+    // Server-IP-level, not per-domain — every domain's records page shows
+    // the same result, since it's the same server. Nothing to "fix" here
+    // (unlike SPF/DKIM/DMARC/MX, this isn't a DNS zone record you control);
+    // it's set by whoever hosts the IP, hence no `value` to paste anywhere.
+    const ptr = await verifyPtr(env.mta.serverIp);
+    records.push({
+      type: "PTR",
+      name: env.mta.serverIp ?? "(SERVER_PUBLIC_IP not set)",
+      value: ptr.ptrHostname ?? "—",
+      note: ptr.note,
+      status: ptr.status,
+    });
+
     return { ready: dkimReady, records };
   },
 
@@ -140,8 +199,14 @@ export const domainsService = {
   async canSendOne(domainName: string): Promise<boolean> {
     const domain = await domainsRepository.findByName(domainName);
     if (!domain) return true; // unmanaged domain — no cap enforced
-    const cap = todaysCap(domain.warmupStartedAt, domain.maxDailyCap);
+
     const sent = await domainsRepository.getTodaySentCount(domain.id, todayUtc());
+    // The first send attempt of a new UTC day is also the one moment to
+    // check yesterday's health — reuses the count we already fetched above
+    // instead of a separate "have we checked today" flag/column.
+    if (sent === 0) await holdWarmupIfUnhealthy(domain);
+
+    const cap = todaysCap(domain.warmupStartedAt, domain.maxDailyCap);
     return sent < cap;
   },
 

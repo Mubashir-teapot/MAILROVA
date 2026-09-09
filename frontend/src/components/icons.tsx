@@ -214,3 +214,25 @@ export const AtSignIcon = (p: IconProps) => (
     <path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4 7.5" />
   </Base>
 );
+
+export const BlockIcon = (p: IconProps) => (
+  <Base {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M5.6 5.6l12.8 12.8" />
+  </Base>
+);
+
+export const KeyIcon = (p: IconProps) => (
+  <Base {...p}>
+    <circle cx="8" cy="15" r="4" />
+    <path d="M11 12 20 3M17 6l2.5 2.5M14 9l2 2" />
+  </Base>
+);
+
+export const AuditLogIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M8 3v4M16 3v4" />
+    <rect x="4" y="5" width="16" height="16" rx="2" />
+    <path d="M8 13h8M8 17h5" />
+  </Base>
+);

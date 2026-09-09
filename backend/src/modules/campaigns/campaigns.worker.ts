@@ -3,6 +3,7 @@ import { boss, SEND_EMAIL_QUEUE } from "../../common/queue/boss";
 import { sendMail } from "../../common/mail/mailer";
 import { renderTemplate } from "../../common/utils/renderTemplate";
 import { makeUnsubscribeToken } from "../../common/utils/unsubscribeToken";
+import { makeVerpAddress } from "../../common/utils/verp";
 import { env } from "../../config/env";
 import { prisma } from "../../config/prisma";
 import { domainsService } from "../domains/domains.service";
@@ -95,6 +96,10 @@ async function handleSendEmail(job: SendEmailJobData, retryCount: number, retryL
         "List-Unsubscribe": `<${unsubscribeUrl}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
       },
+      envelopeFrom:
+        env.smtp.mode === "self_hosted" && env.mta.bounceDomain
+          ? makeVerpAddress(campaignId, email, env.mta.bounceDomain)
+          : undefined,
     });
 
     await campaignsRepository.recordSend(campaignId, email, "sent", { subscriberId: subscriberId ?? undefined });

@@ -1,0 +1,5 @@
+# Appended to /etc/postfix/master.cf by docker-entrypoint-wrapper.sh.
+# Standard Postfix pipe(8) transport — hands the raw message to
+# forward-bounce.sh, which POSTs it to the backend's bounce webhook.
+mailrovabounce unix - n n - - pipe
+  flags=Rq user=nobody argv=/usr/local/bin/forward-bounce.sh ${recipient}

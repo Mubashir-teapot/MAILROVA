@@ -15,6 +15,9 @@ export interface ImportResult {
   total: number;
   imported: number;
   emailed: number;
+  // Suppressed (bounced/unsubscribed/blocklisted) addresses skipped in
+  // "subscribe" mode — never silently re-subscribed via re-import.
+  skipped: number;
   errors: string[];
 }
 
@@ -34,11 +37,21 @@ export const importService = {
       : null;
     if (options.templateId && !template) throw ApiError.notFound("Template not found");
 
-    const result: ImportResult = { total: rows.length, imported: 0, emailed: 0, errors: [] };
+    const suppressed = new Set(
+      (await prisma.suppression.findMany({ where: { tenantId }, select: { email: true } })).map((s) => s.email)
+    );
+
+    const result: ImportResult = { total: rows.length, imported: 0, emailed: 0, skipped: 0, errors: [] };
 
     for (const row of rows) {
       const email = row.email?.toLowerCase().trim();
       if (!email) continue;
+
+      if (options.mode === "subscribe" && suppressed.has(email)) {
+        result.skipped += 1;
+        result.errors.push(`${email}: on the suppression list (bounced, unsubscribed, or blocklisted) — not (re-)subscribed`);
+        continue;
+      }
 
       let attribs: Record<string, unknown> = {};
       if (row.attributes) {
@@ -70,6 +83,14 @@ export const importService = {
         await prisma.subscriberList.updateMany({
           where: { subscriberId: subscriber.id },
           data: { status: "unsubscribed" },
+        });
+        // Consistent with every other blocklisting path (bounce/unsubscribe) —
+        // a manually-blocklisted address is suppressed tenant-wide, not just
+        // removed from these particular lists.
+        await prisma.suppression.upsert({
+          where: { tenantId_email: { tenantId, email } },
+          create: { tenantId, email, reason: "manual" },
+          update: {},
         });
       } else {
         for (const listId of options.listIds) {

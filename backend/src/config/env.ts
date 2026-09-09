@@ -84,5 +84,9 @@ export const env = {
     dkimSelector: process.env.DKIM_SELECTOR ?? "mail",
     hostname: process.env.MTA_HOSTNAME || undefined, // e.g. mail.marketing.yourdomain.com
     serverIp: process.env.SERVER_PUBLIC_IP || undefined, // for the SPF record
+    // Domain bounce DSNs come back to (VERP return-path, see
+    // campaigns.worker.ts + mta/ config) — defaults to MTA_HOSTNAME since
+    // that's already the domain this server accepts inbound mail for.
+    bounceDomain: process.env.BOUNCE_DOMAIN || process.env.MTA_HOSTNAME || undefined,
   },
 };

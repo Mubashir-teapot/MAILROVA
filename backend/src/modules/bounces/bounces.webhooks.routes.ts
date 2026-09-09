@@ -12,3 +12,10 @@ export const bounceWebhooksRoutes = Router();
 bounceWebhooksRoutes.post("/ses", express.text({ type: "*/*" }), asyncHandler(bounceWebhooksController.ses));
 bounceWebhooksRoutes.post("/sendgrid", asyncHandler(bounceWebhooksController.sendgrid));
 bounceWebhooksRoutes.post("/postmark", asyncHandler(bounceWebhooksController.postmark));
+
+// Postfix's forwarding script POSTs the raw bounce DSN — not JSON — see mta/.
+bounceWebhooksRoutes.post(
+  "/postfix",
+  express.raw({ type: "*/*", limit: "20mb" }),
+  asyncHandler(bounceWebhooksController.postfix)
+);

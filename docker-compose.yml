@@ -112,16 +112,10 @@ services:
       - "${FRONTEND_PORT:-5173}"
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      # No separate volume for .next — it used to be isolated here to avoid
-      # colliding with a host-side .next, but an anonymous volume like that
-      # SURVIVES `docker compose up --build` (Docker doesn't wipe it just
-      # because the image changed), so it was silently serving stale
-      # compiled CSS/JS after every rebuild. Next now writes .next straight
-      # into the bind-mounted ./frontend (already gitignored), so a rebuild
-      # actually reflects the rebuild.
+    # No bind mount: the image runs a production `next build`, not the dev
+    # server, so there's no live-reload use for host source and no stale
+    # .next/HMR state to leak across restarts — every rebuild is self-
+    # contained in the image.
 
 volumes:
   db_data:

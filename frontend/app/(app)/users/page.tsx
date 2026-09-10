@@ -57,7 +57,7 @@ export default function Users() {
         formFields={[
           { name: "username", label: "Username", required: true },
           { name: "email", label: "Contact email (not a sending address, see Mailboxes for that)", required: true },
-          { name: "password", label: "Password" },
+          { name: "password", label: "Password", editOptional: true },
           {
             name: "roleId",
             label: "Role",

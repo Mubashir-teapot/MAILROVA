@@ -17,10 +17,28 @@ function setEnvVar(envList: string[], key: string, value: string): string[] {
   return next;
 }
 
+// Callers (domains.service.ts's create/remove) fire this in the background,
+// not awaited — two domain operations in quick succession (e.g. delete then
+// re-add) would otherwise both stop/remove/recreate the SAME container name
+// concurrently, and whichever's createContainer() lands last wins, with no
+// guarantee it's the one holding the correct final domain list. Chaining
+// every call onto this queue forces them to run one at a time, in order, so
+// the last call queued is always the last one to actually apply.
+let queue: Promise<void> = Promise.resolve();
+
+export function syncMtaDomains(domains: string[]): Promise<void> {
+  const task = queue.then(() => doSyncMtaDomains(domains));
+  // Swallow here so one failed sync doesn't permanently jam the queue for
+  // every sync after it — the real error still reaches this call's own
+  // caller via `task`, which is returned below untouched.
+  queue = task.catch(() => undefined);
+  return task;
+}
+
 // Recreates the mta container so OpenDKIM picks up a new/changed domain list
 // and generates keys for it. Preserves the container's image, volumes,
 // network attachment, and restart policy — only the env vars change.
-export async function syncMtaDomains(domains: string[]): Promise<void> {
+async function doSyncMtaDomains(domains: string[]): Promise<void> {
   const name = env.mta.containerName;
   const container = docker.getContainer(name);
 

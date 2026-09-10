@@ -43,10 +43,15 @@ export default function Domains() {
   const [openId, setOpenId] = useState<number | null>(null);
   const [records, setRecords] = useState<{ ready: boolean; records: DnsRecord[] } | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   async function load() {
-    const { data } = await api.get("/domains");
-    setDomains(data);
+    try {
+      const { data } = await api.get("/domains");
+      setDomains(data);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error ?? "Failed to load domains");
+    }
   }
 
   useEffect(() => {
@@ -69,20 +74,35 @@ export default function Domains() {
   async function openRecords(id: number) {
     setOpenId(id);
     setRecords(null);
+    try {
+      await fetchRecords(id);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error ?? "Failed to load DNS records");
+    }
+  }
+
+  async function fetchRecords(id: number) {
     const { data } = await api.get(`/domains/${id}/dns-records`);
     setRecords(data);
   }
 
   async function refreshRecords(id: number) {
-    const { data } = await api.get(`/domains/${id}/dns-records`);
-    setRecords(data);
+    setRefreshing(true);
+    try {
+      await fetchRecords(id);
+      toast.success("Refreshed");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error ?? "Failed to refresh");
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   async function handleVerify(id: number) {
     setVerifying(true);
     try {
       await api.post(`/domains/${id}/verify`);
-      await refreshRecords(id);
+      await fetchRecords(id);
       toast.success("Checked live DNS. Statuses updated below");
     } catch (err: any) {
       toast.error(err.response?.data?.error ?? "Verification failed");
@@ -143,8 +163,8 @@ export default function Domains() {
               </div>
               <div className="flex gap-2">
                 {openId === d.id && (
-                  <Button variant="outline" size="sm" onClick={() => refreshRecords(d.id)}>
-                    Refresh
+                  <Button variant="outline" size="sm" onClick={() => refreshRecords(d.id)} disabled={refreshing}>
+                    {refreshing ? "Refreshing…" : "Refresh"}
                   </Button>
                 )}
                 <Button variant="outline" size="sm" onClick={() => (openId === d.id ? setOpenId(null) : openRecords(d.id))}>
@@ -173,8 +193,8 @@ export default function Domains() {
                       {!records.ready && (
                         <div className="flex items-center justify-between rounded-md bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
                           DKIM key is still generating (mail server is restarting). Refresh in a few seconds.
-                          <Button variant="outline" size="sm" onClick={() => refreshRecords(d.id)}>
-                            Refresh
+                          <Button variant="outline" size="sm" onClick={() => refreshRecords(d.id)} disabled={refreshing}>
+                            {refreshing ? "Refreshing…" : "Refresh"}
                           </Button>
                         </div>
                       )}

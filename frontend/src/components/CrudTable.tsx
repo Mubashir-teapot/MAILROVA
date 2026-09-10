@@ -100,6 +100,8 @@ export function CrudTable({ resourcePath, columns, formFields, extractList }: Pr
     try {
       const { data } = await api.get(resourcePath);
       setRows(extractList ? extractList(data) : data);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error ?? "Failed to load");
     } finally {
       setLoading(false);
     }

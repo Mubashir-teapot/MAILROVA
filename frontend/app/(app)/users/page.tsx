@@ -33,20 +33,21 @@ export default function Users() {
         <h2 className="page-title">Users</h2>
         <p className="text-sm text-muted-foreground">
           People who can log into this admin. Teammates, not subscribers. What each one can see and do is set by
-          their Role (see the Roles page).
+          their Role (see the Roles page). Their contact email here is unrelated to what a campaign sends from,
+          that's a mailbox (see the Mailboxes page), assigned to a user separately.
         </p>
       </div>
       <CrudTable
         resourcePath="/users"
         columns={[
           { key: "username", label: "Username" },
-          { key: "email", label: "Email" },
+          { key: "email", label: "Contact email" },
           { key: "type", label: "Type" },
           { key: "status", label: "Status" },
           { key: "roleId", label: "Role", render: (r) => roles.find((role) => role.id === r.roleId)?.name ?? "-" },
           {
             key: "mailboxes",
-            label: "Sends from",
+            label: "Sends campaigns from",
             render: (r) => {
               const emails = mailboxesFor(r.id);
               return emails.length ? emails.join(", ") : "-";
@@ -55,7 +56,7 @@ export default function Users() {
         ]}
         formFields={[
           { name: "username", label: "Username", required: true },
-          { name: "email", label: "Email", required: true },
+          { name: "email", label: "Contact email (not a sending address, see Mailboxes for that)", required: true },
           { name: "password", label: "Password" },
           {
             name: "roleId",

@@ -118,7 +118,15 @@ export default function LoginPage() {
               />
             </label>
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <button type="submit" className="btn mt-1 w-full py-2.5" disabled={submitting}>
+            {/* Monochrome, matching the ink-black brand panel, rather than
+                the shared blue .btn — a bright accent color reads wrong as
+                the dominant color of a dark page. Inverts per theme: dark
+                button on light background, light button on dark background. */}
+            <button
+              type="submit"
+              className="mt-1 inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-ink px-3.5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-ink dark:hover:bg-slate-200"
+              disabled={submitting}
+            >
               {submitting ? "Signing in…" : "Log in"}
             </button>
           </form>

@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env";
 import { ApiError } from "../utils/ApiError";
+import { authRepository } from "../../modules/auth/auth.repository";
 
 export const SESSION_COOKIE = "mailrova_session";
 
@@ -44,13 +45,30 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     const token = req.cookies?.[SESSION_COOKIE];
     if (!token) throw ApiError.unauthorized("Not signed in");
 
-    const user = jwt.verify(token, env.jwtSecret) as AuthUser;
+    const decoded = jwt.verify(token, env.jwtSecret) as AuthUser;
     // Defense in depth: a session issued for one tenant must not be usable
     // on a request that resolved to a different tenant's hostname.
-    if (req.tenantId !== undefined && user.tenantId !== req.tenantId) {
+    if (req.tenantId !== undefined && decoded.tenantId !== req.tenantId) {
       throw new Error("tenant mismatch");
     }
-    req.user = user;
+
+    // Permissions/roleName are looked up fresh here, never trusted from the
+    // token — otherwise a role edit (or a cookie signed before a field like
+    // roleName existed) keeps acting on stale data for up to 7 days, and a
+    // check like requireSuperAdmin can reject a token that requireAuth
+    // itself accepted, which looks like a random 403 instead of a clean
+    // "please log in again". A deleted user/role now turns into a real 401,
+    // which the frontend already redirects to login on.
+    const dbUser = await authRepository.findById(decoded.tenantId, decoded.id);
+    if (!dbUser) throw new Error("user no longer exists");
+
+    req.user = {
+      id: dbUser.id,
+      tenantId: dbUser.tenantId,
+      username: dbUser.username,
+      permissions: dbUser.role?.permissions ?? [],
+      roleName: dbUser.role?.name ?? null,
+    };
     next();
   } catch (err) {
     next(err instanceof ApiError ? err : ApiError.unauthorized("Invalid or expired session"));

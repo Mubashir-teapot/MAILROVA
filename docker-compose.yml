@@ -115,7 +115,13 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-      - /app/.next
+      # No separate volume for .next — it used to be isolated here to avoid
+      # colliding with a host-side .next, but an anonymous volume like that
+      # SURVIVES `docker compose up --build` (Docker doesn't wipe it just
+      # because the image changed), so it was silently serving stale
+      # compiled CSS/JS after every rebuild. Next now writes .next straight
+      # into the bind-mounted ./frontend (already gitignored), so a rebuild
+      # actually reflects the rebuild.
 
 volumes:
   db_data:

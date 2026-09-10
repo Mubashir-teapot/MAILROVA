@@ -34,5 +34,9 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Static files under /public (logos, favicons, ...) must stay reachable
+  // even when logged out — the login page itself references them — so
+  // common static-asset extensions are excluded alongside _next/* and
+  // favicon.ico, not just that one literal filename.
+  matcher: ["/((?!_next/static|_next/image|.*\\.(?:ico|png|jpg|jpeg|svg|webp|gif)$).*)"],
 };

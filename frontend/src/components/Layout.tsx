@@ -62,7 +62,7 @@ export function Layout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
       <aside className="flex w-56 flex-col gap-6 bg-ink p-4 text-white">
         <div className="flex items-center gap-2 px-1">
-          <LogoMark />
+          <LogoMark forceDark />
           <span className="text-[15px] font-semibold tracking-tight">Mailrova</span>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5">

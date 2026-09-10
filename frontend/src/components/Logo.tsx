@@ -1,12 +1,22 @@
-// Matches icons.tsx's visual language (stroke-only, currentColor, no fill)
-// instead of a standalone colored app-icon square — so it reads as part of
-// the same clean icon set everywhere it's used, light sidebar, dark
-// sidebar, login panel, rather than a mismatched logo dropped on top.
-export function LogoMark({ size = 22, className }: { size?: number; className?: string }) {
+// The real brand mark (public/logo-mark-{light,dark}.png), swapped for the
+// theme via CSS (`dark:` classes react to the same <html class="dark">
+// the blocking inline script in layout.tsx sets before first paint) rather
+// than JS state, so there's no flash of the wrong-color logo on load.
+//
+// `forceDark` is for a container with a fixed dark background regardless
+// of the app theme (e.g. the sidebar) — there the light variant would be
+// invisible if the auto dark:/light: swap picked it in light mode.
+export function LogoMark({ size = 22, className, forceDark = false }: { size?: number; className?: string; forceDark?: boolean }) {
+  const style = { height: size, width: "auto" };
+
+  if (forceDark) {
+    return <img src="/logo-mark-dark.png" alt="" style={style} className={className} />;
+  }
+
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
-      <rect x="2" y="5" width="20" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M3 7.2 12 13l9-5.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <>
+      <img src="/logo-mark-light.png" alt="" style={style} className={`dark:hidden ${className ?? ""}`} />
+      <img src="/logo-mark-dark.png" alt="" style={style} className={`hidden dark:block ${className ?? ""}`} />
+    </>
   );
 }

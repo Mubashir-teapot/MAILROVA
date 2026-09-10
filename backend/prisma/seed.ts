@@ -27,70 +27,90 @@ async function main() {
     console.log("─".repeat(60));
   }
 
-  // ---- First tenant (only if none exist yet) — everything after this can
-  // also be done later from the platform admin UI for additional tenants. ----
-  const tenantCount = await prisma.tenant.count();
-  if (tenantCount > 0) {
-    console.log("Tenant(s) already exist — skipping default tenant bootstrap.");
-    return;
+  // ---- First tenant (only bootstrapped once) — additional tenants are
+  // created later from the platform admin UI, not here. ----
+  let tenant = await prisma.tenant.findFirst();
+
+  if (!tenant) {
+    const tenantName = process.env.DEFAULT_TENANT_NAME || "My Organization";
+    const tenantSlug = process.env.DEFAULT_TENANT_SLUG || "default";
+    const tenantHostname = (process.env.DEFAULT_TENANT_HOSTNAME || "localhost").toLowerCase();
+
+    tenant = await prisma.tenant.create({ data: { name: tenantName, slug: tenantSlug } });
+    await prisma.tenantHostname.create({ data: { tenantId: tenant.id, hostname: tenantHostname, isPrimary: true } });
+
+    await prisma.template.create({
+      data: {
+        tenantId: tenant.id,
+        name: "Default template",
+        type: "campaign",
+        body: "{{Campaign.Subject}}",
+        isDefault: true,
+      },
+    });
+
+    await prisma.setting.create({
+      data: {
+        tenantId: tenant.id,
+        key: "bounce.actions",
+        value: {
+          soft: { count: 2, action: "none" },
+          hard: { count: 1, action: "blocklist" },
+          complaint: { count: 1, action: "blocklist" },
+        },
+      },
+    });
+
+    console.log(`Tenant "${tenantName}" created, reachable at host "${tenantHostname}".`);
   }
 
-  const tenantName = process.env.DEFAULT_TENANT_NAME || "My Organization";
-  const tenantSlug = process.env.DEFAULT_TENANT_SLUG || "default";
-  const tenantHostname = (process.env.DEFAULT_TENANT_HOSTNAME || "localhost").toLowerCase();
+  // ---- Admin user — .env is the source of truth on every deploy, not just
+  // the first. Without this, a password set (or auto-generated and lost)
+  // before ADMIN_PASSWORD existed in .env would silently outlive every
+  // later .env change, since this used to only ever run once. ----
   const adminUsername = process.env.ADMIN_USERNAME || "admin";
   const adminEmail = process.env.ADMIN_EMAIL || "admin@mailrova.local";
-  const adminPassword = process.env.ADMIN_PASSWORD || randomPassword();
 
-  const tenant = await prisma.tenant.create({ data: { name: tenantName, slug: tenantSlug } });
-  await prisma.tenantHostname.create({ data: { tenantId: tenant.id, hostname: tenantHostname, isPrimary: true } });
+  const superAdminRole =
+    (await prisma.role.findFirst({ where: { tenantId: tenant.id, name: "Super Admin" } })) ??
+    (await prisma.role.create({
+      data: { tenantId: tenant.id, name: "Super Admin", type: "user", permissions: ALL_PERMISSIONS },
+    }));
 
-  const superAdminRole = await prisma.role.create({
-    data: { tenantId: tenant.id, name: "Super Admin", type: "user", permissions: ALL_PERMISSIONS },
+  const existingAdmin = await prisma.user.findUnique({
+    where: { tenantId_username: { tenantId: tenant.id, username: adminUsername } },
   });
 
-  const passwordHash = await bcrypt.hash(adminPassword, 10);
-  await prisma.user.create({
-    data: {
-      tenantId: tenant.id,
-      username: adminUsername,
-      email: adminEmail,
-      passwordHash,
-      type: "user",
-      status: "enabled",
-      roleId: superAdminRole.id,
-    },
-  });
-
-  await prisma.template.create({
-    data: {
-      tenantId: tenant.id,
-      name: "Default template",
-      type: "campaign",
-      body: "{{Campaign.Subject}}",
-      isDefault: true,
-    },
-  });
-
-  await prisma.setting.create({
-    data: {
-      tenantId: tenant.id,
-      key: "bounce.actions",
-      value: {
-        soft: { count: 2, action: "none" },
-        hard: { count: 1, action: "blocklist" },
-        complaint: { count: 1, action: "blocklist" },
+  if (!existingAdmin) {
+    const adminPassword = process.env.ADMIN_PASSWORD || randomPassword();
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
+    await prisma.user.create({
+      data: {
+        tenantId: tenant.id,
+        username: adminUsername,
+        email: adminEmail,
+        passwordHash,
+        type: "user",
+        status: "enabled",
+        roleId: superAdminRole.id,
       },
-    },
-  });
-
-  console.log("─".repeat(60));
-  console.log(`Tenant "${tenantName}" created, reachable at host "${tenantHostname}" — sign in at /admin/login`);
-  console.log(`  username: ${adminUsername}`);
-  if (!process.env.ADMIN_PASSWORD) {
-    console.log(`  password: ${adminPassword}  (generated — save this, it will not be shown again)`);
+    });
+    console.log("─".repeat(60));
+    console.log(`Admin user "${adminUsername}" created — sign in at /admin/login`);
+    if (!process.env.ADMIN_PASSWORD) {
+      console.log(`  password: ${adminPassword}  (generated — save this, it will not be shown again)`);
+    }
+    console.log("─".repeat(60));
+  } else if (process.env.ADMIN_PASSWORD) {
+    const passwordHash = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
+    await prisma.user.update({
+      where: { id: existingAdmin.id },
+      data: { email: adminEmail, passwordHash, status: "enabled" },
+    });
+    console.log(`Admin user "${adminUsername}" password synced from ADMIN_PASSWORD — sign in at /admin/login`);
+  } else {
+    console.log(`Admin user "${adminUsername}" already exists — set ADMIN_PASSWORD in .env to force-sync it.`);
   }
-  console.log("─".repeat(60));
 }
 
 main()

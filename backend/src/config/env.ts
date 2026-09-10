@@ -37,6 +37,11 @@ export const env = {
         host: "mta",
         port: 25,
         secure: false,
+        // The mta container's STARTTLS cert is self-signed (it's an
+        // internal Docker-network hop, not a publicly-trusted endpoint) —
+        // without this, nodemailer's default cert verification rejects it
+        // with "self-signed certificate" on every single send.
+        tls: { rejectUnauthorized: false },
         user: undefined,
         pass: undefined,
         fromEmail: process.env.FROM_EMAIL ?? "noreply@mailrova.local",
@@ -47,6 +52,7 @@ export const env = {
       host: required("SMTP_HOST"),
       port: Number(process.env.SMTP_PORT ?? 587),
       secure: process.env.SMTP_SECURE === "true",
+      tls: undefined,
       user: process.env.SMTP_USER || undefined,
       pass: process.env.SMTP_PASS || undefined,
       fromEmail: process.env.FROM_EMAIL ?? "noreply@mailrova.local",

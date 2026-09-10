@@ -9,6 +9,7 @@ const transport = nodemailer.createTransport({
   host: env.smtp.host,
   port: env.smtp.port,
   secure: env.smtp.secure,
+  tls: env.smtp.tls,
   auth: env.smtp.user ? { user: env.smtp.user, pass: env.smtp.pass } : undefined,
 });
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { api } from "@/api/client";
 import { confirmDialog } from "@/components/ConfirmDialog";
+import { TrashIcon } from "@/components/icons";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -95,6 +96,17 @@ export default function Campaigns() {
     toast.success("Status updated");
   }
 
+  async function handleDelete(id: number) {
+    if (!(await confirmDialog("Delete this letter? This can't be undone."))) return;
+    try {
+      await api.delete(`/campaigns/${id}`);
+      await load();
+      toast.success("Letter deleted");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error ?? "Failed to delete");
+    }
+  }
+
   async function toggleLog(id: number) {
     if (openLogId === id) {
       setOpenLogId(null);
@@ -152,6 +164,17 @@ export default function Campaigns() {
                     <Button variant="outline" size="sm" onClick={() => toggleLog(c.id)}>
                       {openLogId === c.id ? "Hide log" : "Delivery log"}
                     </Button>
+                    {c.status !== "running" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(c.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                        aria-label="Delete"
+                      >
+                        <TrashIcon />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
                 {openLogId === c.id && (

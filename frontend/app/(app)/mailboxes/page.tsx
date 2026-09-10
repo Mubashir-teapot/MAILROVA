@@ -67,13 +67,15 @@ export default function Mailboxes() {
     load();
   }, []);
 
+  const selectedDomain = domains.find((d) => String(d.id) === form.domainId);
+
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     setError(null);
     try {
       await api.post("/mailboxes", {
         domainId: Number(form.domainId),
-        email: form.email,
+        email: `${form.email}@${selectedDomain?.domain}`,
         name: form.name,
         password: form.password || undefined,
         dailyCap: Number(form.dailyCap) || 100,
@@ -162,13 +164,19 @@ export default function Mailboxes() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mb-email">Email</Label>
-            <Input
-              id="mb-email"
-              placeholder="info@marketing.yourdomain.com"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required
-            />
+            <div className="flex">
+              <Input
+                id="mb-email"
+                className="w-32 rounded-r-none"
+                placeholder="hello"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+              />
+              <span className="flex items-center whitespace-nowrap rounded-r-md border border-l-0 border-input bg-muted px-2.5 text-sm text-muted-foreground">
+                @{selectedDomain?.domain ?? "select a domain"}
+              </span>
+            </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mb-name">Display name</Label>

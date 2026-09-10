@@ -50,10 +50,13 @@ async function verifyDkim(domain: string, selector: string): Promise<boolean> {
 }
 
 async function verifyMx(domain: string): Promise<boolean> {
-  if (!env.mta.hostname) return false; // inbound MX isn't configured for this deployment
+  // Must match domains.service.ts's getDnsRecords(), which suggests this
+  // same fallback as the MX value whenever MTA_HOSTNAME isn't set — without
+  // it, a domain configured exactly as instructed still verifies as failed.
+  const mxHost = env.mta.hostname ?? domain;
   try {
     const records = await dns.resolveMx(domain);
-    return records.some((r) => r.exchange.toLowerCase() === env.mta.hostname!.toLowerCase());
+    return records.some((r) => r.exchange.toLowerCase() === mxHost.toLowerCase());
   } catch {
     return false;
   }

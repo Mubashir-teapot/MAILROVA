@@ -94,9 +94,14 @@ services:
         condition: service_started
       docker-proxy:
         condition: service_started
+    # No bind mount: the image runs a compiled production build (`tsc` +
+    # `node dist/server.js`), not the dev server, so there's no live-reload
+    # use for host source — and no stale node_modules/@prisma-client volume
+    # (the exact bug that just broke `docker compose exec backend node -e
+    # ...`: an anonymous node_modules volume from an old container outlived
+    # every rebuild since, so the image's freshly-generated @prisma/client
+    # never reached the running container) to leak across restarts.
     volumes:
-      - ./backend:/app
-      - /app/node_modules
       - backend_uploads:/app/uploads
       - mta_dkim_keys:/mta-dkim-keys:ro
 

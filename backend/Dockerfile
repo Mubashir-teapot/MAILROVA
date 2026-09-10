@@ -13,7 +13,8 @@ RUN npm install
 
 COPY . .
 RUN npx prisma generate
+RUN npm run build
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "npx prisma db push && npx prisma db seed && npm run dev"]
+CMD ["sh", "-c", "npx prisma db push && npx prisma db seed && npm start"]

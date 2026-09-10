@@ -34,7 +34,13 @@ export default function Bounces() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="page-title">Bounces</h2>
+      <div>
+        <h2 className="page-title">Bounces</h2>
+        <p className="text-sm text-muted-foreground">
+          Delivery failures reported back by receiving mail servers — read-only log, recorded automatically as
+          campaigns and transactional mail send. Repeated hard bounces or complaints add an address to Suppressions.
+        </p>
+      </div>
       <Card className="overflow-x-auto p-0">
         <Table>
           <TableHeader>

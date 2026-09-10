@@ -55,7 +55,10 @@ export default function Settings() {
 
   return (
     <div className="flex flex-col gap-5">
-      <h2 className="page-title">Settings</h2>
+      <div>
+        <h2 className="page-title">Settings</h2>
+        <p className="text-sm text-muted-foreground">Tenant-wide behavior — sending throttle, and every raw setting for advanced tuning.</p>
+      </div>
 
       <Card className="p-5">
         <form onSubmit={handleSaveRate} className="flex flex-col gap-3">

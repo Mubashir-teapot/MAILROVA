@@ -138,7 +138,13 @@ export default function Roles() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="page-title">Roles</h2>
+        <div>
+          <h2 className="page-title">Roles</h2>
+          <p className="text-sm text-muted-foreground">
+            What a user can see and do — assign permissions here, then pick a role for each user on the Users page.
+            The sidebar itself follows these: a page only shows up for a user whose role has permission for it.
+          </p>
+        </div>
         <Button onClick={openCreate}>New role</Button>
       </div>
 

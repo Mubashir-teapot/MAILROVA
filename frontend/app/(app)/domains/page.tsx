@@ -1,9 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/api/client";
 import { TrashIcon } from "@/components/icons";
 import { confirmDialog } from "@/components/ConfirmDialog";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,7 +27,14 @@ interface DnsRecord {
   name: string;
   value: string;
   note?: string;
+  status: "pending" | "verified" | "failed";
 }
+
+const STATUS_VARIANT: Record<DnsRecord["status"], BadgeProps["variant"]> = {
+  pending: "secondary",
+  verified: "success",
+  failed: "destructive",
+};
 
 export default function Domains() {
   const [domains, setDomains] = useState<Domain[]>([]);
@@ -33,6 +42,7 @@ export default function Domains() {
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
   const [records, setRecords] = useState<{ ready: boolean; records: DnsRecord[] } | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   async function load() {
     const { data } = await api.get("/domains");
@@ -68,6 +78,19 @@ export default function Domains() {
     setRecords(data);
   }
 
+  async function handleVerify(id: number) {
+    setVerifying(true);
+    try {
+      await api.post(`/domains/${id}/verify`);
+      await refreshRecords(id);
+      toast.success("Checked live DNS — statuses updated below");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error ?? "Verification failed");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
   async function handleDelete(id: number) {
     if (!(await confirmDialog("Remove this domain? Mailboxes on it will stop working."))) return;
     await api.delete(`/domains/${id}`);
@@ -77,6 +100,7 @@ export default function Domains() {
 
   function copy(text: string) {
     navigator.clipboard?.writeText(text);
+    toast.success("Copied");
   }
 
   return (
@@ -84,7 +108,9 @@ export default function Domains() {
       <div>
         <h2 className="page-title">Sending domains</h2>
         <p className="text-sm text-muted-foreground">
-          Add a domain to send from. We generate the DKIM key and give you every record to paste into Cloudflare.
+          A domain you own that this server sends email as (e.g. <code className="rounded bg-muted px-1 py-0.5 text-xs">marketing.yourdomain.com</code>).
+          Add it, paste the generated records into your DNS provider (Cloudflare), then verify — this is what proves to
+          receiving mail servers that your messages aren't spoofed.
         </p>
       </div>
 
@@ -147,24 +173,37 @@ export default function Domains() {
                           </Button>
                         </div>
                       )}
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">Paste these into your DNS provider, then verify.</p>
+                        <Button size="sm" onClick={() => handleVerify(d.id)} disabled={verifying}>
+                          {verifying ? "Checking…" : "Verify domain"}
+                        </Button>
+                      </div>
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Type</TableHead>
                             <TableHead>Name</TableHead>
                             <TableHead>Value</TableHead>
+                            <TableHead>Status</TableHead>
                             <TableHead />
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {records.records.map((r, i) => (
                             <TableRow key={i}>
-                              <TableCell>{r.type}</TableCell>
-                              <TableCell className="font-mono text-xs">{r.name}</TableCell>
-                              <TableCell className="max-w-md truncate font-mono text-xs" title={r.value}>
-                                {r.value}
+                              <TableCell className="align-top">{r.type}</TableCell>
+                              <TableCell className="align-top font-mono text-xs">{r.name}</TableCell>
+                              <TableCell className="max-w-md align-top">
+                                <p className="truncate font-mono text-xs" title={r.value}>
+                                  {r.value}
+                                </p>
+                                {r.note && <p className="mt-0.5 text-[11px] text-muted-foreground">{r.note}</p>}
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="align-top">
+                                <Badge variant={STATUS_VARIANT[r.status]}>{r.status}</Badge>
+                              </TableCell>
+                              <TableCell className="align-top">
                                 <Button variant="outline" size="sm" onClick={() => copy(r.value)}>
                                   Copy
                                 </Button>
@@ -174,8 +213,9 @@ export default function Domains() {
                         </TableBody>
                       </Table>
                       <p className="text-xs text-muted-foreground">
-                        One more thing DNS can't do: set reverse DNS (PTR) for your server's IP to match this domain/hostname —
-                        that's done in your hosting provider's panel (Hostinger), not Cloudflare.
+                        The PTR row isn't something you set here — it's controlled by whoever hosts your server's IP
+                        (Hostinger), not your DNS zone (Cloudflare). Set it in Hostinger's panel to match this domain/hostname;
+                        "Verify domain" checks it live but can't create it for you.
                       </p>
                     </>
                   )}

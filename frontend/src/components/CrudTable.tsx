@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export interface Column {
@@ -22,8 +23,14 @@ export interface Column {
 export interface FormField {
   name: string;
   label: string;
-  type?: "text" | "number" | "checkbox";
+  type?: "text" | "number" | "checkbox" | "select";
   required?: boolean;
+  options?: { value: string; label: string }[];
+  placeholder?: string;
+  // Coerces the select's (string) value to a Number before it lands in
+  // form state — needed for fields like a numeric roleId the backend
+  // validates strictly as z.number(), not a coercible string.
+  numeric?: boolean;
 }
 
 interface Props {
@@ -93,6 +100,22 @@ export function CrudTable({ resourcePath, columns, formFields, extractList }: Pr
                     checked={!!form[f.name]}
                     onCheckedChange={(checked) => setForm({ ...form, [f.name]: !!checked })}
                   />
+                ) : f.type === "select" ? (
+                  <Select
+                    value={form[f.name] !== undefined ? String(form[f.name]) : ""}
+                    onValueChange={(v) => setForm({ ...form, [f.name]: f.numeric ? Number(v) : v })}
+                  >
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder={f.placeholder ?? "Select…"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(f.options ?? []).map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <Input
                     id={f.name}

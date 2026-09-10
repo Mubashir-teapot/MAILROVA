@@ -5,7 +5,13 @@ import { CrudTable } from "@/components/CrudTable";
 export default function Lists() {
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="page-title">Lists</h2>
+      <div>
+        <h2 className="page-title">Lists</h2>
+        <p className="text-sm text-muted-foreground">
+          Groups of subscribers you send campaigns to — e.g. "Newsletter" or "Customers". A subscriber can belong to
+          several lists at once.
+        </p>
+      </div>
       <CrudTable
         resourcePath="/lists"
         columns={[

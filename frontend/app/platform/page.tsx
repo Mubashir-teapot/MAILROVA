@@ -5,6 +5,11 @@ import { api } from "@/api/client";
 import { usePlatformAuth } from "@/auth/PlatformAuthContext";
 import { LogoMark } from "@/components/Logo";
 import { CloseIcon, LogoutIcon } from "@/components/icons";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Tenant {
   id: number;
@@ -93,15 +98,15 @@ export default function PlatformDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 dark:border-slate-800 dark:bg-slate-900">
+    <div className="min-h-screen bg-background">
+      <header className="flex items-center justify-between border-b border-border bg-card px-6 py-3">
         <div className="flex items-center gap-2">
           <LogoMark size={22} />
-          <span className="text-sm font-semibold text-slate-900 dark:text-white">Mailrova Platform</span>
+          <span className="text-sm font-semibold text-foreground">Mailrova Platform</span>
         </div>
-        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span>{admin?.username}</span>
-          <button onClick={logout} className="flex items-center gap-1 hover:text-slate-900 dark:hover:text-white">
+          <button onClick={logout} className="flex items-center gap-1 hover:text-foreground">
             <LogoutIcon width={14} height={14} />
             Logout
           </button>
@@ -111,157 +116,154 @@ export default function PlatformDashboard() {
       <main className="mx-auto flex max-w-4xl flex-col gap-5 p-6">
         <div>
           <h2 className="page-title">Platform settings</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Applies across every tenant on this deployment.</p>
+          <p className="text-sm text-muted-foreground">Applies across every tenant on this deployment.</p>
         </div>
 
-        <form onSubmit={handleSaveScheduler} className="card flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Campaign scheduler</h3>
-          <label className="label max-w-xs">
-            Poll interval (ms)
-            <input
-              type="number"
-              min={1000}
-              step={1000}
-              className="input"
-              value={schedulerMs}
-              onChange={(e) => setSchedulerMs(Number(e.target.value))}
-            />
-          </label>
-          <p className="text-xs text-slate-400">
-            How often the scheduler checks for scheduled/running campaigns across all tenants. Takes effect on the
-            next tick — no restart needed.
-          </p>
-          {schedulerSaved && <p className="text-xs text-green-600">Saved.</p>}
-          <button type="submit" className="btn w-fit" disabled={savingScheduler}>
-            {savingScheduler ? "Saving…" : "Save"}
-          </button>
-        </form>
+        <Card className="p-5">
+          <form onSubmit={handleSaveScheduler} className="flex flex-col gap-3">
+            <h3 className="text-sm font-semibold text-foreground">Campaign scheduler</h3>
+            <div className="flex max-w-xs flex-col gap-1.5">
+              <Label htmlFor="scheduler-ms">Poll interval (ms)</Label>
+              <Input
+                id="scheduler-ms"
+                type="number"
+                min={1000}
+                step={1000}
+                value={schedulerMs}
+                onChange={(e) => setSchedulerMs(Number(e.target.value))}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              How often the scheduler checks for scheduled/running campaigns across all tenants. Takes effect on the
+              next tick — no restart needed.
+            </p>
+            {schedulerSaved && <p className="text-xs text-emerald-600 dark:text-emerald-400">Saved.</p>}
+            <Button type="submit" className="w-fit" disabled={savingScheduler}>
+              {savingScheduler ? "Saving…" : "Save"}
+            </Button>
+          </form>
+        </Card>
 
         <div>
           <h2 className="page-title">Tenants</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Each tenant is a fully isolated organization.</p>
+          <p className="text-sm text-muted-foreground">Each tenant is a fully isolated organization.</p>
         </div>
 
-        <form onSubmit={handleCreateTenant} className="card flex flex-wrap items-end gap-3">
-          <label className="label">
-            Org name
-            <input
-              className="input"
-              value={tenantForm.name}
-              onChange={(e) => setTenantForm({ ...tenantForm, name: e.target.value })}
-              required
-            />
-          </label>
-          <label className="label">
-            Slug
-            <input
-              className="input"
-              value={tenantForm.slug}
-              onChange={(e) => setTenantForm({ ...tenantForm, slug: e.target.value })}
-              required
-            />
-          </label>
-          <label className="label">
-            Hostname
-            <input
-              className="input"
-              placeholder="mail.example.com"
-              value={tenantForm.hostname}
-              onChange={(e) => setTenantForm({ ...tenantForm, hostname: e.target.value })}
-              required
-            />
-          </label>
-          <label className="label">
-            Admin username
-            <input
-              className="input"
-              value={tenantForm.adminUsername}
-              onChange={(e) => setTenantForm({ ...tenantForm, adminUsername: e.target.value })}
-              required
-            />
-          </label>
-          <label className="label">
-            Admin email
-            <input
-              type="email"
-              className="input"
-              value={tenantForm.adminEmail}
-              onChange={(e) => setTenantForm({ ...tenantForm, adminEmail: e.target.value })}
-              required
-            />
-          </label>
-          <label className="label">
-            Admin password
-            <input
-              type="password"
-              className="input"
-              value={tenantForm.adminPassword}
-              onChange={(e) => setTenantForm({ ...tenantForm, adminPassword: e.target.value })}
-              required
-              minLength={8}
-            />
-          </label>
-          <button type="submit" className="btn">
-            Create tenant
-          </button>
-          {tenantError && <p className="w-full text-sm text-red-600">{tenantError}</p>}
-        </form>
+        <Card className="p-5">
+          <form onSubmit={handleCreateTenant} className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="t-name">Org name</Label>
+              <Input
+                id="t-name"
+                value={tenantForm.name}
+                onChange={(e) => setTenantForm({ ...tenantForm, name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="t-slug">Slug</Label>
+              <Input
+                id="t-slug"
+                value={tenantForm.slug}
+                onChange={(e) => setTenantForm({ ...tenantForm, slug: e.target.value })}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="t-hostname">Hostname</Label>
+              <Input
+                id="t-hostname"
+                placeholder="mail.example.com"
+                value={tenantForm.hostname}
+                onChange={(e) => setTenantForm({ ...tenantForm, hostname: e.target.value })}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="t-admin-username">Admin username</Label>
+              <Input
+                id="t-admin-username"
+                value={tenantForm.adminUsername}
+                onChange={(e) => setTenantForm({ ...tenantForm, adminUsername: e.target.value })}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="t-admin-email">Admin email</Label>
+              <Input
+                id="t-admin-email"
+                type="email"
+                value={tenantForm.adminEmail}
+                onChange={(e) => setTenantForm({ ...tenantForm, adminEmail: e.target.value })}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="t-admin-password">Admin password</Label>
+              <Input
+                id="t-admin-password"
+                type="password"
+                value={tenantForm.adminPassword}
+                onChange={(e) => setTenantForm({ ...tenantForm, adminPassword: e.target.value })}
+                required
+                minLength={8}
+              />
+            </div>
+            <Button type="submit">Create tenant</Button>
+            {tenantError && <p className="w-full text-sm text-destructive">{tenantError}</p>}
+          </form>
+        </Card>
 
         <div className="flex flex-col gap-3">
           {tenants.map((t) => (
-            <div key={t.id} className="card flex flex-col gap-3">
+            <Card key={t.id} className="flex flex-col gap-3 p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
-                    {t.name} <span className="text-slate-400">({t.slug})</span>
+                  <p className="font-medium text-foreground">
+                    {t.name} <span className="text-muted-foreground">({t.slug})</span>
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     {t._count.users} users · {t._count.domains} domains
                   </p>
                 </div>
-                <button
-                  onClick={() => toggleStatus(t)}
-                  className={`badge ${
-                    t.status === "active"
-                      ? "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"
-                      : "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400"
-                  }`}
-                >
-                  {t.status} — click to {t.status === "active" ? "suspend" : "activate"}
+                <button onClick={() => toggleStatus(t)}>
+                  <Badge variant={t.status === "active" ? "success" : "destructive"}>
+                    {t.status} — click to {t.status === "active" ? "suspend" : "activate"}
+                  </Badge>
                 </button>
               </div>
 
               <div>
-                <span className="label mb-2">Hostnames</span>
+                <Label className="mb-2 inline-block">Hostnames</Label>
                 <div className="flex flex-wrap items-center gap-2">
                   {t.hostnames.map((h) => (
                     <span
                       key={h.id}
-                      className="flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                      className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
                     >
                       {h.hostname}
-                      {h.isPrimary && <span className="text-slate-400">(primary)</span>}
+                      {h.isPrimary && <span className="text-muted-foreground/70">(primary)</span>}
                       {!h.isPrimary && (
-                        <button onClick={() => removeHostname(h.id)} className="text-slate-400 hover:text-red-600">
+                        <button onClick={() => removeHostname(h.id)} className="text-muted-foreground hover:text-destructive">
                           <CloseIcon width={11} height={11} />
                         </button>
                       )}
                     </span>
                   ))}
-                  <input
-                    className="input h-7 w-40 text-xs"
+                  <Input
+                    className="h-7 w-40 text-xs"
                     placeholder="add hostname…"
                     value={newHostname[t.id] ?? ""}
                     onChange={(e) => setNewHostname((h) => ({ ...h, [t.id]: e.target.value }))}
                   />
-                  <button className="btn-ghost" onClick={() => addHostname(t.id)}>
+                  <Button variant="outline" size="sm" onClick={() => addHostname(t.id)}>
                     Add
-                  </button>
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
-          {!tenants.length && <p className="text-sm text-slate-400">No tenants yet.</p>}
+          {!tenants.length && <p className="text-sm text-muted-foreground">No tenants yet.</p>}
         </div>
       </main>
     </div>

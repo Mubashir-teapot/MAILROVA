@@ -1,6 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+} from "@/components/ui/alert-dialog";
 
 interface PendingConfirm {
   message: string;
@@ -36,26 +45,22 @@ export function ConfirmDialogHost() {
     };
   }, []);
 
-  if (!pending) return null;
-
   function respond(value: boolean) {
     pending!.resolve(value);
     setPendingState(null);
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => respond(false)}>
-      <div className="card w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-        <p className="text-sm text-slate-700 dark:text-slate-200">{pending.message}</p>
-        <div className="mt-4 flex justify-end gap-2">
-          <button type="button" className="btn-ghost" onClick={() => respond(false)}>
-            Cancel
-          </button>
-          <button type="button" className="btn" onClick={() => respond(true)}>
-            Confirm
-          </button>
-        </div>
-      </div>
-    </div>
+    <AlertDialog open={!!pending} onOpenChange={(open) => !open && respond(false)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogDescription>{pending?.message}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => respond(false)}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={() => respond(true)}>Confirm</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

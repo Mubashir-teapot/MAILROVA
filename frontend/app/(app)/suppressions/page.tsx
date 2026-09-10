@@ -6,7 +6,7 @@ export default function Suppressions() {
   return (
     <div className="flex flex-col gap-4">
       <h2 className="page-title">Suppressions</h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-sm text-muted-foreground">
         Addresses no campaign or transactional send will ever go to — populated automatically by
         hard bounces, complaints, and unsubscribes, or added here manually.
       </p>

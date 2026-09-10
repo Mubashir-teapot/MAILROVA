@@ -4,6 +4,8 @@ import { ChangeEvent, useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { MediaIcon, TrashIcon, UploadIcon } from "@/components/icons";
 import { confirmDialog } from "@/components/ConfirmDialog";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface Media {
   id: number;
@@ -42,27 +44,29 @@ export default function Media() {
   return (
     <div className="flex flex-col gap-4">
       <h2 className="page-title">Media</h2>
-      <label className="btn w-fit cursor-pointer">
-        <UploadIcon width={16} height={16} />
-        Upload file
-        <input type="file" className="hidden" onChange={handleUpload} />
-      </label>
+      <Button variant="outline" className="w-fit cursor-pointer" asChild>
+        <label>
+          <UploadIcon width={16} height={16} />
+          Upload file
+          <input type="file" className="hidden" onChange={handleUpload} />
+        </label>
+      </Button>
 
       <div className="flex flex-wrap gap-3">
         {media.map((m) => (
-          <div key={m.id} className="card flex w-40 flex-col items-center gap-2 text-center">
-            <span className="rounded-md bg-accent/10 p-3 text-accent">
+          <Card key={m.id} className="flex w-40 flex-col items-center gap-2 p-5 text-center">
+            <span className="rounded-md bg-primary/10 p-3 text-primary">
               <MediaIcon width={24} height={24} />
             </span>
-            <span className="w-full truncate text-xs text-slate-600 dark:text-slate-300">{m.filename}</span>
+            <span className="w-full truncate text-xs text-muted-foreground">{m.filename}</span>
             <button
               onClick={() => handleDelete(m.id)}
-              className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-600"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
             >
               <TrashIcon width={14} height={14} />
               Delete
             </button>
-          </div>
+          </Card>
         ))}
       </div>
     </div>

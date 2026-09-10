@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/api/client";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface Bounce {
   id: number;
@@ -11,10 +15,14 @@ interface Bounce {
   subscriber: { email: string };
 }
 
-const TYPE_STYLE: Record<string, string> = {
-  hard: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
-  soft: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-  complaint: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400",
+const TYPE_VARIANT: Record<string, BadgeProps["variant"]> = {
+  hard: "destructive",
+  soft: "warning",
+  complaint: "secondary",
+};
+
+const TYPE_CLASS: Record<string, string> = {
+  complaint: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
 };
 
 export default function Bounces() {
@@ -27,32 +35,32 @@ export default function Bounces() {
   return (
     <div className="flex flex-col gap-4">
       <h2 className="page-title">Bounces</h2>
-      <div className="card overflow-x-auto p-0">
-        <table className="table-base">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Type</th>
-              <th>Source</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
+      <Card className="overflow-x-auto p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Email</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead>Date</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {bounces.map((b) => (
-              <tr key={b.id}>
-                <td>{b.subscriber.email}</td>
-                <td>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_STYLE[b.type]}`}>
+              <TableRow key={b.id}>
+                <TableCell>{b.subscriber.email}</TableCell>
+                <TableCell>
+                  <Badge variant={TYPE_VARIANT[b.type]} className={cn(TYPE_CLASS[b.type])}>
                     {b.type}
-                  </span>
-                </td>
-                <td>{b.source}</td>
-                <td>{new Date(b.createdAt).toLocaleString()}</td>
-              </tr>
+                  </Badge>
+                </TableCell>
+                <TableCell>{b.source}</TableCell>
+                <TableCell>{new Date(b.createdAt).toLocaleString()}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }

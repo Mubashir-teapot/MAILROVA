@@ -2,8 +2,13 @@
 
 import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { api } from "@/api/client";
 import { confirmDialog } from "@/components/ConfirmDialog";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Campaign {
   id: number;
@@ -41,21 +46,21 @@ const NEXT_STATUS: Record<string, string[]> = {
   cancelled: [],
 };
 
-const STATUS_STYLE: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-  scheduled: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-  running: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
-  paused: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400",
-  finished: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
-  cancelled: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
+const STATUS_VARIANT: Record<string, BadgeProps["variant"]> = {
+  draft: "secondary",
+  scheduled: "warning",
+  running: "info",
+  paused: "warning",
+  finished: "success",
+  cancelled: "destructive",
 };
 
-const LOG_STATUS_STYLE: Record<string, string> = {
-  sent: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
+const LOG_STATUS_VARIANT: Record<string, BadgeProps["variant"]> = {
+  sent: "success",
   // Still within its retry budget — not final yet, distinct from undeliverable.
-  failed: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-  bounced: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-  undeliverable: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
+  failed: "warning",
+  bounced: "warning",
+  undeliverable: "destructive",
 };
 
 export default function Campaigns() {
@@ -77,7 +82,7 @@ export default function Campaigns() {
     if (status === "running") {
       const { data } = await api.post(`/campaigns/${id}/preflight`);
       if (data.errors.length) {
-        alert(`Can't send yet:\n\n${data.errors.join("\n")}`);
+        toast.error("Can't send yet", { description: data.errors.join("\n") });
         return;
       }
       if (data.warnings.length) {
@@ -87,6 +92,7 @@ export default function Campaigns() {
     }
     await api.put(`/campaigns/${id}/status`, { status });
     await load();
+    toast.success("Status updated");
   }
 
   async function toggleLog(id: number) {
@@ -107,52 +113,52 @@ export default function Campaigns() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="page-title">Campaigns</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Letters you've sent, scheduled, or are still drafting.</p>
+          <p className="text-sm text-muted-foreground">Letters you've sent, scheduled, or are still drafting.</p>
         </div>
-        <Link href="/campaigns/new" className="btn">
-          New letter
-        </Link>
+        <Button asChild>
+          <Link href="/campaigns/new">New letter</Link>
+        </Button>
       </div>
 
-      <div className="card overflow-x-auto p-0">
-        <table className="table-base">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Subject</th>
-              <th>Status</th>
-              <th>Send at</th>
-              <th>Sent</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <Card className="overflow-x-auto p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Subject</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Send at</TableHead>
+              <TableHead>Sent</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {campaigns.map((c) => (
               <Fragment key={c.id}>
-                <tr>
-                  <td>{c.name}</td>
-                  <td>{c.subject}</td>
-                  <td>
-                    <span className={`badge ${STATUS_STYLE[c.status]}`}>{c.status}</span>
-                  </td>
-                  <td>{c.sendAt ? new Date(c.sendAt).toLocaleString() : "—"}</td>
-                  <td>{c.sent}</td>
-                  <td className="flex gap-2">
+                <TableRow>
+                  <TableCell>{c.name}</TableCell>
+                  <TableCell>{c.subject}</TableCell>
+                  <TableCell>
+                    <Badge variant={STATUS_VARIANT[c.status]}>{c.status}</Badge>
+                  </TableCell>
+                  <TableCell>{c.sendAt ? new Date(c.sendAt).toLocaleString() : "—"}</TableCell>
+                  <TableCell>{c.sent}</TableCell>
+                  <TableCell className="flex gap-2">
                     {(NEXT_STATUS[c.status] ?? []).map((s) => (
-                      <button key={s} onClick={() => setStatus(c.id, s)} className="btn-ghost">
+                      <Button key={s} variant="outline" size="sm" onClick={() => setStatus(c.id, s)}>
                         {s === "running" ? "Send now" : s}
-                      </button>
+                      </Button>
                     ))}
-                    <button className="btn-ghost" onClick={() => toggleLog(c.id)}>
+                    <Button variant="outline" size="sm" onClick={() => toggleLog(c.id)}>
                       {openLogId === c.id ? "Hide log" : "Delivery log"}
-                    </button>
-                  </td>
-                </tr>
+                    </Button>
+                  </TableCell>
+                </TableRow>
                 {openLogId === c.id && (
-                  <tr>
-                    <td colSpan={6} className="bg-slate-50 p-0 dark:bg-slate-900/60">
+                  <TableRow>
+                    <TableCell colSpan={6} className="bg-muted/40 p-0">
                       {stats && (
-                        <div className="flex flex-wrap gap-x-6 gap-y-2 border-b border-slate-200 px-4 py-3 text-sm dark:border-white/10">
+                        <div className="flex flex-wrap gap-x-6 gap-y-2 border-b border-border px-4 py-3 text-sm">
                           <Stat label="Sent" value={stats.sent} />
                           <Stat label="Retrying" value={stats.retrying} />
                           <Stat label="Undeliverable" value={stats.undeliverable} />
@@ -163,50 +169,50 @@ export default function Campaigns() {
                         </div>
                       )}
                       {!log ? (
-                        <p className="px-4 py-3 text-sm text-slate-400">Loading…</p>
+                        <p className="px-4 py-3 text-sm text-muted-foreground">Loading…</p>
                       ) : log.length ? (
-                        <table className="table-base">
-                          <thead>
-                            <tr>
-                              <th>Email</th>
-                              <th>Status</th>
-                              <th>Error</th>
-                              <th>When</th>
-                            </tr>
-                          </thead>
-                          <tbody>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Email</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Error</TableHead>
+                              <TableHead>When</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
                             {log.map((entry) => (
-                              <tr key={entry.id}>
-                                <td>{entry.email}</td>
-                                <td>
-                                  <span className={`badge ${LOG_STATUS_STYLE[entry.status]}`}>{entry.status}</span>
-                                </td>
-                                <td className="max-w-xs truncate text-xs text-slate-500" title={entry.error ?? ""}>
+                              <TableRow key={entry.id}>
+                                <TableCell>{entry.email}</TableCell>
+                                <TableCell>
+                                  <Badge variant={LOG_STATUS_VARIANT[entry.status]}>{entry.status}</Badge>
+                                </TableCell>
+                                <TableCell className="max-w-xs truncate text-xs text-muted-foreground" title={entry.error ?? ""}>
                                   {entry.error ?? "—"}
-                                </td>
-                                <td>{new Date(entry.sentAt).toLocaleString()}</td>
-                              </tr>
+                                </TableCell>
+                                <TableCell>{new Date(entry.sentAt).toLocaleString()}</TableCell>
+                              </TableRow>
                             ))}
-                          </tbody>
-                        </table>
+                          </TableBody>
+                        </Table>
                       ) : (
-                        <p className="px-4 py-3 text-sm text-slate-400">No sends recorded yet.</p>
+                        <p className="px-4 py-3 text-sm text-muted-foreground">No sends recorded yet.</p>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
               </Fragment>
             ))}
             {!campaigns.length && (
-              <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-400">
+              <TableRow>
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   No letters yet.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }
@@ -214,8 +220,8 @@ export default function Campaigns() {
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-baseline gap-1.5">
-      <span className="font-semibold text-slate-900 dark:text-slate-100">{value}</span>
-      <span className="text-slate-500 dark:text-slate-400">{label}</span>
+      <span className="font-semibold text-foreground">{value}</span>
+      <span className="text-muted-foreground">{label}</span>
     </div>
   );
 }

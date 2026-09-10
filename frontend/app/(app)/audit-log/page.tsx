@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { EmptyState, Loading } from "@/components/States";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface AuditLogEntry {
   id: number;
@@ -35,7 +38,7 @@ export default function AuditLog() {
   return (
     <div className="flex flex-col gap-4">
       <h2 className="page-title">Audit Log</h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-sm text-muted-foreground">
         Important admin and user actions in this tenant — user/role changes, domain and mailbox
         changes, campaign sends, settings changes, and API key activity.
       </p>
@@ -43,40 +46,40 @@ export default function AuditLog() {
       {loading ? (
         <Loading />
       ) : entries.length === 0 ? (
-        <div className="card">
+        <Card className="p-5">
           <EmptyState message="Nothing logged yet." />
-        </div>
+        </Card>
       ) : (
-        <div className="card overflow-x-auto p-0">
-          <table className="table-base">
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>Actor</th>
-                <th>Action</th>
-                <th>Target</th>
-                <th>Details</th>
-              </tr>
-            </thead>
-            <tbody>
+        <Card className="overflow-x-auto p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>When</TableHead>
+                <TableHead>Actor</TableHead>
+                <TableHead>Action</TableHead>
+                <TableHead>Target</TableHead>
+                <TableHead>Details</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {entries.map((e) => (
-                <tr key={e.id}>
-                  <td className="whitespace-nowrap">{new Date(e.createdAt).toLocaleString()}</td>
-                  <td>
+                <TableRow key={e.id}>
+                  <TableCell className="whitespace-nowrap">{new Date(e.createdAt).toLocaleString()}</TableCell>
+                  <TableCell>
                     {ACTOR_LABEL[e.actorType] ?? e.actorType}: {e.actorLabel}
-                  </td>
-                  <td>
-                    <span className="badge bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">{e.action}</span>
-                  </td>
-                  <td>{e.targetType ? `${e.targetType} #${e.targetId}` : "—"}</td>
-                  <td className="max-w-sm truncate text-xs text-slate-500 dark:text-slate-400" title={JSON.stringify(e.meta)}>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{e.action}</Badge>
+                  </TableCell>
+                  <TableCell>{e.targetType ? `${e.targetType} #${e.targetId}` : "—"}</TableCell>
+                  <TableCell className="max-w-sm truncate text-xs text-muted-foreground" title={JSON.stringify(e.meta)}>
                     {Object.keys(e.meta ?? {}).length ? JSON.stringify(e.meta) : "—"}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   );

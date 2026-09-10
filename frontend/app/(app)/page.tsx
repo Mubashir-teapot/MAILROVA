@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api } from "@/api/client";
 import { CampaignIcon, ListIcon, UsersIcon } from "@/components/icons";
+import { Card } from "@/components/ui/card";
 
 export default function Dashboard() {
   const [counts, setCounts] = useState<{ subscribers: number; lists: number; campaigns: number } | null>(null);
@@ -21,9 +23,9 @@ export default function Dashboard() {
 
   const cards = counts
     ? [
-        { label: "Subscribers", value: counts.subscribers, icon: UsersIcon },
-        { label: "Lists", value: counts.lists, icon: ListIcon },
-        { label: "Campaigns", value: counts.campaigns, icon: CampaignIcon },
+        { label: "Subscribers", value: counts.subscribers, icon: UsersIcon, href: "/subscribers" },
+        { label: "Lists", value: counts.lists, icon: ListIcon, href: "/lists" },
+        { label: "Campaigns", value: counts.campaigns, icon: CampaignIcon, href: "/campaigns" },
       ]
     : [];
 
@@ -32,15 +34,17 @@ export default function Dashboard() {
       <h2 className="page-title">Dashboard</h2>
       <div className="flex flex-wrap gap-4">
         {cards.map((c) => (
-          <div key={c.label} className="card flex min-w-[160px] items-center gap-3">
-            <span className="rounded-md bg-accent/10 p-2 text-accent">
-              <c.icon width={22} height={22} />
-            </span>
-            <div>
-              <strong className="block text-2xl text-ink dark:text-white">{c.value}</strong>
-              <span className="text-xs text-slate-500 dark:text-slate-400">{c.label}</span>
-            </div>
-          </div>
+          <Link key={c.label} href={c.href}>
+            <Card className="flex min-w-[160px] items-center gap-3 p-5 transition-colors hover:border-primary/40">
+              <span className="rounded-md bg-primary/10 p-2 text-primary">
+                <c.icon width={22} height={22} />
+              </span>
+              <div>
+                <strong className="block text-2xl text-foreground">{c.value}</strong>
+                <span className="text-xs text-muted-foreground">{c.label}</span>
+              </div>
+            </Card>
+          </Link>
         ))}
       </div>
     </div>

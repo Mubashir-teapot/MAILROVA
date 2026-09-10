@@ -3,6 +3,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { UploadIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface ListOption {
   id: number;
@@ -78,100 +83,115 @@ export default function Import() {
     <div className="flex flex-col gap-5">
       <div>
         <h2 className="page-title">Import subscribers</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Upload a CSV with an <code className="rounded bg-slate-100 px-1 py-0.5 text-xs dark:bg-slate-800">email</code> column
-          (optional <code className="rounded bg-slate-100 px-1 py-0.5 text-xs dark:bg-slate-800">name</code> and{" "}
-          <code className="rounded bg-slate-100 px-1 py-0.5 text-xs dark:bg-slate-800">attributes</code> as JSON).
+        <p className="text-sm text-muted-foreground">
+          Upload a CSV with an <code className="rounded bg-muted px-1 py-0.5 text-xs">email</code> column
+          (optional <code className="rounded bg-muted px-1 py-0.5 text-xs">name</code> and{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">attributes</code> as JSON).
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="card flex flex-col gap-4">
-        <label className="btn w-fit cursor-pointer">
-          <UploadIcon width={16} height={16} />
-          {file ? file.name : "Choose CSV file"}
-          <input
-            type="file"
-            accept=".csv"
-            className="hidden"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
-
-        <label className="label max-w-xs">
-          Mode
-          <select className="input" value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}>
-            <option value="subscribe">Subscribe to list(s)</option>
-            <option value="blocklist">Blocklist these addresses</option>
-          </select>
-        </label>
-
-        {mode === "subscribe" && (
-          <>
-            <div>
-              <span className="label mb-2">Add to list(s)</span>
-              <div className="flex flex-wrap gap-2">
-                {lists.map((l) => (
-                  <label
-                    key={l.id}
-                    className={`flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm ${
-                      listIds.has(l.id)
-                        ? "border-accent bg-blue-50 text-accent dark:bg-blue-500/10"
-                        : "border-slate-200 text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600"
-                    }`}
-                  >
-                    <input type="checkbox" className="hidden" checked={listIds.has(l.id)} onChange={() => toggleList(l.id)} />
-                    {l.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <label className="label max-w-sm">
-              Send a template to every imported subscriber (optional)
-              <select className="input" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
-                <option value="">— don't send anything —</option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
+      <Card className="p-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <Button type="button" variant="outline" className="w-fit cursor-pointer" asChild>
+            <label>
+              <UploadIcon width={16} height={16} />
+              {file ? file.name : "Choose CSV file"}
+              <input
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
             </label>
-          </>
-        )}
+          </Button>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex max-w-xs flex-col gap-1.5">
+            <Label>Mode</Label>
+            <Select value={mode} onValueChange={(v) => setMode(v as typeof mode)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="subscribe">Subscribe to list(s)</SelectItem>
+                <SelectItem value="blocklist">Blocklist these addresses</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <button type="submit" className="btn w-fit" disabled={!file || loading}>
-          {loading ? "Importing…" : "Import"}
-        </button>
-      </form>
+          {mode === "subscribe" && (
+            <>
+              <div>
+                <Label className="mb-2 inline-block">Add to list(s)</Label>
+                <div className="flex flex-wrap gap-2">
+                  {lists.map((l) => (
+                    <label
+                      key={l.id}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm",
+                        listIds.has(l.id)
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:border-foreground/20"
+                      )}
+                    >
+                      <input type="checkbox" className="hidden" checked={listIds.has(l.id)} onChange={() => toggleList(l.id)} />
+                      {l.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex max-w-sm flex-col gap-1.5">
+                <Label>Send a template to every imported subscriber (optional)</Label>
+                <Select value={templateId || "__none"} onValueChange={(v) => setTemplateId(v === "__none" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">— don't send anything —</SelectItem>
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={String(t.id)}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+
+          <Button type="submit" className="w-fit" disabled={!file || loading}>
+            {loading ? "Importing…" : "Import"}
+          </Button>
+        </form>
+      </Card>
 
       {result && (
-        <div className="card flex flex-col gap-2">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Result</h3>
-          <div className="flex gap-6 text-sm text-slate-600 dark:text-slate-300">
+        <Card className="flex flex-col gap-2 p-5">
+          <h3 className="text-sm font-semibold text-foreground">Result</h3>
+          <div className="flex gap-6 text-sm text-muted-foreground">
             <span>
-              <strong className="text-slate-900 dark:text-slate-100">{result.total}</strong> rows
+              <strong className="text-foreground">{result.total}</strong> rows
             </span>
             <span>
-              <strong className="text-slate-900 dark:text-slate-100">{result.imported}</strong> imported
+              <strong className="text-foreground">{result.imported}</strong> imported
             </span>
             <span>
-              <strong className="text-slate-900 dark:text-slate-100">{result.emailed}</strong> emailed
+              <strong className="text-foreground">{result.emailed}</strong> emailed
             </span>
             <span>
-              <strong className="text-slate-900 dark:text-slate-100">{result.skipped}</strong> skipped (suppressed)
+              <strong className="text-foreground">{result.skipped}</strong> skipped (suppressed)
             </span>
           </div>
           {result.errors.length > 0 && (
-            <ul className="mt-2 flex flex-col gap-1 text-xs text-red-600">
+            <ul className="mt-2 flex flex-col gap-1 text-xs text-destructive">
               {result.errors.map((e, i) => (
                 <li key={i}>{e}</li>
               ))}
             </ul>
           )}
-        </div>
+        </Card>
       )}
     </div>
   );

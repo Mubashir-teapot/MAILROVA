@@ -14,6 +14,8 @@ import {
 import { Block, BLOCK_LABELS, BlockType, compileDoc, createBlock, TemplateDoc } from "./blocks";
 import { BlockView } from "./BlockView";
 import { Inspector } from "./Inspector";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 const ADD_BUTTONS: { type: BlockType; icon: typeof HeadingIcon }[] = [
   { type: "heading", icon: HeadingIcon },
@@ -104,37 +106,37 @@ export function VisualEditor({ doc, onChange }: Props) {
   return (
     <div className="grid grid-cols-[1fr,280px] gap-5">
       <div className="flex flex-col gap-4">
-        <div className="card flex flex-wrap items-center gap-2 dark:border-slate-800 dark:bg-slate-900">
-          <span className="text-xs font-medium text-slate-400">Add block</span>
+        <Card className="flex flex-wrap items-center gap-2 p-5">
+          <span className="text-xs font-medium text-muted-foreground">Add block</span>
           {ADD_BUTTONS.map((b) => (
-            <button key={b.type} type="button" onClick={() => addBlock(b.type)} className="btn-ghost">
+            <Button key={b.type} type="button" variant="outline" size="sm" onClick={() => addBlock(b.type)}>
               <b.icon width={14} height={14} />
               {BLOCK_LABELS[b.type]}
-            </button>
+            </Button>
           ))}
           <div className="ml-auto flex items-center gap-2">
-            <button type="button" className="btn-ghost" onClick={() => setPreview((v) => !v)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setPreview((v) => !v)}>
               {preview ? "Back to editing" : "Preview"}
-            </button>
-            <label className="text-xs text-slate-400">Background</label>
+            </Button>
+            <label className="text-xs text-muted-foreground">Background</label>
             <input
               type="color"
               value={doc.backgroundColor}
               onChange={(e) => onChange({ ...doc, backgroundColor: e.target.value })}
-              className="h-7 w-9 rounded border border-slate-300 dark:border-slate-700"
+              className="h-7 w-9 rounded border border-input"
             />
           </div>
-        </div>
+        </Card>
 
         {preview ? (
           <iframe
             title="Template preview"
             srcDoc={compileDoc(doc)}
             sandbox=""
-            className="min-h-[520px] w-full rounded-xl border border-slate-200 bg-white dark:border-slate-800"
+            className="min-h-[520px] w-full rounded-xl border border-border bg-white"
           />
         ) : (
-          <div className="rounded-xl border border-slate-200 p-6 dark:border-slate-800" style={{ background: doc.backgroundColor }}>
+          <div className="rounded-xl border border-border p-6" style={{ background: doc.backgroundColor }}>
             <div
               className="mx-auto flex flex-col rounded-lg bg-white shadow-sm"
               style={{ width: doc.contentWidth, maxWidth: "100%" }}
@@ -165,7 +167,7 @@ export function VisualEditor({ doc, onChange }: Props) {
                 </div>
               ))}
               {!doc.blocks.length && (
-                <div className="flex h-40 items-center justify-center gap-1 p-6 text-sm text-slate-300">
+                <div className="flex h-40 items-center justify-center gap-1 p-6 text-sm text-muted-foreground">
                   <ArrowDownIcon width={14} height={14} />
                   Add a block above to start designing
                 </div>

@@ -4,6 +4,13 @@ import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/api/client";
 import { CloseIcon, TrashIcon } from "@/components/icons";
 import { confirmDialog } from "@/components/ConfirmDialog";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface ListOption {
   id: number;
@@ -24,10 +31,10 @@ interface Subscriber {
   lists: SubscriberList[];
 }
 
-const STATUS_STYLE: Record<string, string> = {
-  enabled: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
-  disabled: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-  blocklisted: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
+const STATUS_VARIANT: Record<string, BadgeProps["variant"]> = {
+  enabled: "success",
+  disabled: "secondary",
+  blocklisted: "destructive",
 };
 
 export default function Subscribers() {
@@ -95,93 +102,96 @@ export default function Subscribers() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="page-title">Subscribers</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{total} total</p>
+          <p className="text-sm text-muted-foreground">{total} total</p>
         </div>
-        <input
-          className="input max-w-xs"
+        <Input
+          className="max-w-xs"
           placeholder="Search by name or email…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      <form onSubmit={handleCreate} className="card flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-4">
-          <label className="label">
-            Email
-            <input
-              type="email"
-              className="input"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required
-            />
-          </label>
-          <label className="label">
-            Name
-            <input
-              className="input"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required
-            />
-          </label>
-        </div>
-        <div>
-          <span className="label mb-2">Lists</span>
-          <div className="flex flex-wrap gap-2">
-            {lists.map((l) => (
-              <label
-                key={l.id}
-                className={`flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm ${
-                  form.listIds.has(l.id)
-                    ? "border-accent bg-blue-50 text-accent dark:bg-blue-500/10"
-                    : "border-slate-200 text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600"
-                }`}
-              >
-                <input type="checkbox" className="hidden" checked={form.listIds.has(l.id)} onChange={() => toggleList(l.id)} />
-                {l.name}
-              </label>
-            ))}
+      <Card className="p-5">
+        <form onSubmit={handleCreate} className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="sub-email">Email</Label>
+              <Input
+                id="sub-email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="sub-name">Name</Label>
+              <Input
+                id="sub-name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+              />
+            </div>
           </div>
-        </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button type="submit" className="btn w-fit">
-          Add subscriber
-        </button>
-      </form>
+          <div>
+            <Label className="mb-2 inline-block">Lists</Label>
+            <div className="flex flex-wrap gap-2">
+              {lists.map((l) => (
+                <label
+                  key={l.id}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm",
+                    form.listIds.has(l.id)
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-foreground/20"
+                  )}
+                >
+                  <input type="checkbox" className="hidden" checked={form.listIds.has(l.id)} onChange={() => toggleList(l.id)} />
+                  {l.name}
+                </label>
+              ))}
+            </div>
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" className="w-fit">
+            Add subscriber
+          </Button>
+        </form>
+      </Card>
 
-      <div className="card overflow-x-auto p-0">
-        <table className="table-base">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Name</th>
-              <th>Status</th>
-              <th>Lists</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
+      <Card className="overflow-x-auto p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Email</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Lists</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {subscribers.map((s) => (
-              <tr key={s.id}>
-                <td>{s.email}</td>
-                <td>{s.name}</td>
-                <td>
-                  <span className={`badge ${STATUS_STYLE[s.status]}`}>{s.status}</span>
-                </td>
-                <td>
+              <TableRow key={s.id}>
+                <TableCell>{s.email}</TableCell>
+                <TableCell>{s.name}</TableCell>
+                <TableCell>
+                  <Badge variant={STATUS_VARIANT[s.status]}>{s.status}</Badge>
+                </TableCell>
+                <TableCell>
                   <div className="flex flex-wrap gap-1.5">
                     {s.lists.map((sl) => (
                       <span
                         key={sl.listId}
-                        className="group flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        className="group flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
                       >
                         {sl.list.name}
-                        <span className="text-slate-400 dark:text-slate-500">({sl.status})</span>
+                        <span className="text-muted-foreground/70">({sl.status})</span>
                         <button
                           onClick={() => handleUnsubscribe(s.id, sl.listId)}
-                          className="text-slate-400 hover:text-red-600"
+                          className="text-muted-foreground hover:text-destructive"
                           title="Unsubscribe from this list"
                         >
                           <CloseIcon width={12} height={12} />
@@ -189,24 +199,30 @@ export default function Subscribers() {
                       </span>
                     ))}
                   </div>
-                </td>
-                <td className="w-10">
-                  <button onClick={() => handleDelete(s.id)} className="text-slate-400 hover:text-red-600" aria-label="Delete">
+                </TableCell>
+                <TableCell className="w-10">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(s.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                    aria-label="Delete"
+                  >
                     <TrashIcon />
-                  </button>
-                </td>
-              </tr>
+                  </Button>
+                </TableCell>
+              </TableRow>
             ))}
             {!subscribers.length && (
-              <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-400">
+              <TableRow>
+                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                   No subscribers found.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }

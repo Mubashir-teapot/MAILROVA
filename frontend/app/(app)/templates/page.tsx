@@ -5,6 +5,10 @@ import Link from "next/link";
 import { api } from "@/api/client";
 import { TrashIcon } from "@/components/icons";
 import { confirmDialog } from "@/components/ConfirmDialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Template {
   id: number;
@@ -36,50 +40,56 @@ export default function Templates() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="page-title">Templates</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Reusable designs — with images — for letters and transactional mail.</p>
+          <p className="text-sm text-muted-foreground">Reusable designs — with images — for letters and transactional mail.</p>
         </div>
-        <Link href="/templates/new" className="btn">
-          New template
-        </Link>
+        <Button asChild>
+          <Link href="/templates/new">New template</Link>
+        </Button>
       </div>
 
-      <div className="card overflow-x-auto p-0">
-        <table className="table-base">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Default</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
+      <Card className="overflow-x-auto p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Default</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {templates.map((t) => (
-              <tr key={t.id}>
-                <td>
-                  <Link href={`/templates/${t.id}`} className="font-medium text-accent hover:underline">
+              <TableRow key={t.id}>
+                <TableCell>
+                  <Link href={`/templates/${t.id}`} className="font-medium text-primary hover:underline">
                     {t.name}
                   </Link>
-                </td>
-                <td>{t.type}</td>
-                <td>{t.isDefault ? <span className="badge bg-blue-100 text-accent dark:bg-blue-500/15 dark:text-blue-400">default</span> : ""}</td>
-                <td className="w-10">
-                  <button onClick={() => handleDelete(t.id)} className="text-slate-400 hover:text-red-600" aria-label="Delete">
+                </TableCell>
+                <TableCell>{t.type}</TableCell>
+                <TableCell>{t.isDefault ? <Badge>default</Badge> : ""}</TableCell>
+                <TableCell className="w-10">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(t.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                    aria-label="Delete"
+                  >
                     <TrashIcon />
-                  </button>
-                </td>
-              </tr>
+                  </Button>
+                </TableCell>
+              </TableRow>
             ))}
             {!templates.length && (
-              <tr>
-                <td colSpan={4} className="py-8 text-center text-slate-400">
+              <TableRow>
+                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                   No templates yet.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }

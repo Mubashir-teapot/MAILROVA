@@ -5,6 +5,12 @@ import { api } from "@/api/client";
 import { TrashIcon } from "@/components/icons";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState, Loading } from "@/components/States";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface ApiKey {
   id: number;
@@ -65,86 +71,86 @@ export default function ApiKeys() {
   return (
     <div className="flex flex-col gap-4">
       <h2 className="page-title">API Keys</h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-sm text-muted-foreground">
         For programmatic access — send <code>Authorization: Bearer &lt;key&gt;</code> instead of
         logging in. Each key has the same permissions as the user who created it.
       </p>
 
       {freshKey && (
-        <div className="card flex flex-col gap-2 border border-accent/40 bg-accent/5">
-          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-            Copy this key now — it won&apos;t be shown again
-          </p>
+        <Card className="flex flex-col gap-2 border-primary/40 bg-primary/5 p-5">
+          <p className="text-sm font-semibold text-foreground">Copy this key now — it won&apos;t be shown again</p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 overflow-x-auto rounded-md bg-slate-900 px-3 py-2 text-xs text-white">{freshKey}</code>
-            <button type="button" className="btn-ghost" onClick={copyKey}>
+            <code className="flex-1 overflow-x-auto rounded-md bg-foreground px-3 py-2 text-xs text-background">{freshKey}</code>
+            <Button type="button" variant="outline" onClick={copyKey}>
               {copied ? "Copied" : "Copy"}
-            </button>
+            </Button>
           </div>
-          <button type="button" className="self-start text-xs text-slate-500 hover:underline dark:text-slate-400" onClick={() => setFreshKey(null)}>
+          <button type="button" className="self-start text-xs text-muted-foreground hover:underline" onClick={() => setFreshKey(null)}>
             Done
           </button>
-        </div>
+        </Card>
       )}
 
-      <form onSubmit={handleCreate} className="card flex flex-wrap items-end gap-3">
-        <label className="label">
-          Name
-          <input className="input" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. CI script" />
-        </label>
-        <button type="submit" className="btn">
-          Create key
-        </button>
-      </form>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <Card className="p-5">
+        <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="key-name">Name</Label>
+            <Input id="key-name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. CI script" />
+          </div>
+          <Button type="submit">Create key</Button>
+        </form>
+      </Card>
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       {loading ? (
         <Loading />
       ) : keys.length === 0 ? (
-        <div className="card">
+        <Card className="p-5">
           <EmptyState message="No API keys yet." />
-        </div>
+        </Card>
       ) : (
-        <div className="card overflow-x-auto p-0">
-          <table className="table-base">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Prefix</th>
-                <th>Last used</th>
-                <th>Created</th>
-                <th>Status</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
+        <Card className="overflow-x-auto p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Prefix</TableHead>
+                <TableHead>Last used</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {keys.map((k) => (
-                <tr key={k.id}>
-                  <td>{k.name}</td>
-                  <td>
+                <TableRow key={k.id}>
+                  <TableCell>{k.name}</TableCell>
+                  <TableCell>
                     <code className="text-xs">mrv_{k.keyPrefix}…</code>
-                  </td>
-                  <td>{k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString() : "never"}</td>
-                  <td>{new Date(k.createdAt).toLocaleDateString()}</td>
-                  <td>
-                    {k.revokedAt ? (
-                      <span className="badge bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">Revoked</span>
-                    ) : (
-                      <span className="badge bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">Active</span>
-                    )}
-                  </td>
-                  <td className="w-10">
+                  </TableCell>
+                  <TableCell>{k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString() : "never"}</TableCell>
+                  <TableCell>{new Date(k.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {k.revokedAt ? <Badge variant="destructive">Revoked</Badge> : <Badge variant="success">Active</Badge>}
+                  </TableCell>
+                  <TableCell className="w-10">
                     {!k.revokedAt && (
-                      <button onClick={() => handleRevoke(k.id)} className="text-slate-400 hover:text-red-600" aria-label="Revoke">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRevoke(k.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                        aria-label="Revoke"
+                      >
                         <TrashIcon />
-                      </button>
+                      </Button>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   );

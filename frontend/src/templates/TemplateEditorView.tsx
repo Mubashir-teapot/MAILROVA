@@ -6,6 +6,12 @@ import { api } from "@/api/client";
 import { MediaIcon, UploadIcon } from "@/components/icons";
 import { VisualEditor } from "./VisualEditor";
 import { compileDoc, emptyDoc, TemplateDoc } from "./blocks";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 interface MediaItem {
   id: number;
@@ -128,41 +134,47 @@ export function TemplateEditorView({ id }: { id?: string }) {
     <div className="flex flex-col gap-5">
       <div>
         <h2 className="page-title">{isNew ? "New template" : "Edit template"}</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Design it visually, or write raw HTML — drop in images either way.</p>
+        <p className="text-sm text-muted-foreground">Design it visually, or write raw HTML — drop in images either way.</p>
       </div>
 
-      <div className="card grid grid-cols-3 gap-4 dark:border-slate-800 dark:bg-slate-900">
-        <label className="label">
-          Name
-          <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
-        </label>
-        <label className="label">
-          Type
-          <select className="input" value={type} onChange={(e) => setType(e.target.value as TemplateType)}>
-            <option value="campaign_visual">Visual builder</option>
-            <option value="campaign">HTML (campaign)</option>
-            <option value="tx">Transactional</option>
-          </select>
-        </label>
+      <Card className="grid grid-cols-3 gap-4 p-5">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="tpl-name">Name</Label>
+          <Input id="tpl-name" value={name} onChange={(e) => setName(e.target.value)} required />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Type</Label>
+          <Select value={type} onValueChange={(v) => setType(v as TemplateType)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="campaign_visual">Visual builder</SelectItem>
+              <SelectItem value="campaign">HTML (campaign)</SelectItem>
+              <SelectItem value="tx">Transactional</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         {type === "tx" && (
-          <label className="label">
-            Subject
-            <input className="input" value={subject} onChange={(e) => setSubject(e.target.value)} />
-          </label>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="tpl-subject">Subject</Label>
+            <Input id="tpl-subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+          </div>
         )}
-      </div>
+      </Card>
 
       {type === "campaign_visual" ? (
         <VisualEditor doc={doc} onChange={setDoc} />
       ) : (
         <div className="grid grid-cols-2 gap-5">
-          <div className="card flex flex-col gap-3 dark:border-slate-800 dark:bg-slate-900">
+          <Card className="flex flex-col gap-3 p-5">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">HTML</h3>
+              <h3 className="text-sm font-semibold text-foreground">HTML</h3>
               <div className="relative">
-                <button
+                <Button
                   type="button"
-                  className="btn-ghost"
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     setPickerOpen((v) => !v);
                     if (!pickerOpen) loadMedia();
@@ -170,63 +182,65 @@ export function TemplateEditorView({ id }: { id?: string }) {
                 >
                   <MediaIcon width={14} height={14} />
                   Insert image
-                </button>
+                </Button>
                 {pickerOpen && (
-                  <div className="absolute right-0 z-10 mt-2 w-72 rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-800">
-                    <label className="btn w-full cursor-pointer justify-center text-xs">
-                      <UploadIcon width={14} height={14} />
-                      Upload new image
-                      <input type="file" accept="image/*" className="hidden" onChange={handleUploadAndInsert} />
-                    </label>
+                  <div className="absolute right-0 z-10 mt-2 w-72 rounded-lg border border-border bg-popover p-3 shadow-lg">
+                    <Button variant="outline" className="w-full cursor-pointer justify-center text-xs" asChild>
+                      <label>
+                        <UploadIcon width={14} height={14} />
+                        Upload new image
+                        <input type="file" accept="image/*" className="hidden" onChange={handleUploadAndInsert} />
+                      </label>
+                    </Button>
                     <div className="mt-3 grid max-h-56 grid-cols-3 gap-2 overflow-y-auto">
                       {media.map((m) => (
                         <button
                           key={m.id}
                           type="button"
                           onClick={() => insertImage(m.url)}
-                          className="flex aspect-square items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:border-accent hover:text-accent dark:border-slate-700"
+                          className="flex aspect-square items-center justify-center rounded-md border border-border text-muted-foreground hover:border-primary hover:text-primary"
                           title={m.filename}
                         >
                           <MediaIcon width={20} height={20} />
                         </button>
                       ))}
-                      {!media.length && <p className="col-span-3 text-xs text-slate-400">No uploaded media yet.</p>}
+                      {!media.length && <p className="col-span-3 text-xs text-muted-foreground">No uploaded media yet.</p>}
                     </div>
                   </div>
                 )}
               </div>
             </div>
-            <textarea
+            <Textarea
               ref={textareaRef}
-              className="input min-h-[420px] font-mono text-xs leading-relaxed"
+              className="min-h-[420px] font-mono text-xs leading-relaxed"
               value={body}
               onChange={(e) => setBody(e.target.value)}
             />
-          </div>
+          </Card>
 
-          <div className="card flex flex-col gap-3 dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Preview</h3>
-            <iframe title="Template preview" srcDoc={body} sandbox="" className="min-h-[420px] w-full rounded-md border border-slate-200 bg-white" />
-          </div>
+          <Card className="flex flex-col gap-3 p-5">
+            <h3 className="text-sm font-semibold text-foreground">Preview</h3>
+            <iframe title="Template preview" srcDoc={body} sandbox="" className="min-h-[420px] w-full rounded-md border border-border bg-white" />
+          </Card>
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="flex flex-wrap items-center gap-3">
-        <button className="btn" onClick={handleSave} disabled={saving || !name}>
+        <Button onClick={handleSave} disabled={saving || !name}>
           {saving ? "Saving…" : "Save template"}
-        </button>
-        <button className="btn-ghost" onClick={() => router.push("/templates")}>
+        </Button>
+        <Button variant="outline" onClick={() => router.push("/templates")}>
           Cancel
-        </button>
+        </Button>
 
         <div className="ml-auto flex items-center gap-2">
           {!isNew && (
             <>
-              <input
+              <Input
                 type="email"
-                className="input w-56"
+                className="w-56"
                 placeholder="you@example.com"
                 value={testEmail}
                 onChange={(e) => {
@@ -234,11 +248,11 @@ export function TemplateEditorView({ id }: { id?: string }) {
                   setTestStatus("idle");
                 }}
               />
-              <button type="button" className="btn-ghost" onClick={handleSendTest} disabled={!testEmail.trim() || testStatus === "sending"}>
+              <Button type="button" variant="outline" onClick={handleSendTest} disabled={!testEmail.trim() || testStatus === "sending"}>
                 {testStatus === "sending" ? "Sending…" : "Send test"}
-              </button>
-              {testStatus === "sent" && <span className="text-xs text-green-600">Sent</span>}
-              {testStatus === "error" && <span className="text-xs text-red-600">Failed</span>}
+              </Button>
+              {testStatus === "sent" && <span className="text-xs text-emerald-600 dark:text-emerald-400">Sent</span>}
+              {testStatus === "error" && <span className="text-xs text-destructive">Failed</span>}
             </>
           )}
         </div>

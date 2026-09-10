@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/api/client";
 import { CheckIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 interface ListOption {
   id: number;
@@ -138,150 +146,168 @@ export default function NewCampaign() {
     <div className="flex flex-col gap-5">
       <div>
         <h2 className="page-title">New letter</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Pick a template, choose who receives it, and send.</p>
+        <p className="text-sm text-muted-foreground">Pick a template, choose who receives it, and send.</p>
       </div>
 
       <StepIndicator steps={STEPS} current={stepIndex} onJump={(i) => i < stepIndex && setStepIndex(i)} />
 
-      <div className="card flex flex-col gap-4">
+      <Card className="flex flex-col gap-4 p-5">
         {step === "Audience" && (
           <>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Audience</h3>
+            <h3 className="text-sm font-semibold text-foreground">Audience</h3>
             <div>
-              <span className="label mb-2">Lists (send to everyone subscribed)</span>
+              <Label className="mb-2 inline-block">Lists (send to everyone subscribed)</Label>
               <div className="flex flex-wrap gap-2">
                 {lists.map((l) => (
                   <label
                     key={l.id}
-                    className={`flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm ${
+                    className={cn(
+                      "flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm",
                       form.listIds.has(l.id)
-                        ? "border-accent bg-blue-50 text-accent dark:bg-blue-500/10"
-                        : "border-slate-200 text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600"
-                    }`}
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-foreground/20"
+                    )}
                   >
                     <input type="checkbox" className="hidden" checked={form.listIds.has(l.id)} onChange={() => toggleList(l.id)} />
                     {l.name}
                   </label>
                 ))}
-                {!lists.length && <p className="text-xs text-slate-400">No lists yet.</p>}
+                {!lists.length && <p className="text-xs text-muted-foreground">No lists yet.</p>}
               </div>
             </div>
-            <label className="label">
-              Or specific e-mail(s) — one person, or a handful, comma or newline separated
-              <textarea
-                className="input"
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="to-emails">Or specific e-mail(s) — one person, or a handful, comma or newline separated</Label>
+              <Textarea
+                id="to-emails"
                 rows={2}
                 placeholder="someone@example.com, another@example.com"
                 value={form.toEmails}
                 onChange={(e) => setForm({ ...form, toEmails: e.target.value })}
               />
-            </label>
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <label className="label">
-                CC
-                <input className="input" placeholder="cc@example.com" value={form.cc} onChange={(e) => setForm({ ...form, cc: e.target.value })} />
-              </label>
-              <label className="label">
-                BCC
-                <input className="input" placeholder="bcc@example.com" value={form.bcc} onChange={(e) => setForm({ ...form, bcc: e.target.value })} />
-              </label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="cc">CC</Label>
+                <Input id="cc" placeholder="cc@example.com" value={form.cc} onChange={(e) => setForm({ ...form, cc: e.target.value })} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="bcc">BCC</Label>
+                <Input id="bcc" placeholder="bcc@example.com" value={form.bcc} onChange={(e) => setForm({ ...form, bcc: e.target.value })} />
+              </div>
             </div>
           </>
         )}
 
         {step === "Sender" && (
           <>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Sender</h3>
-            <label className="label">
-              Internal name — for your own reference, recipients never see it
-              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            </label>
-            <label className="label">
-              From
+            <h3 className="text-sm font-semibold text-foreground">Sender</h3>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="camp-name">Internal name — for your own reference, recipients never see it</Label>
+              <Input id="camp-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>From</Label>
               {identities.length ? (
-                <select className="input" value={form.fromEmail} onChange={(e) => setForm({ ...form, fromEmail: e.target.value })} required>
-                  <option value="">Select a sender identity…</option>
-                  {identities.map((i) => (
-                    <option key={i.id} value={i.email}>
-                      {i.name} &lt;{i.email}&gt;
-                    </option>
-                  ))}
-                </select>
+                <Select value={form.fromEmail} onValueChange={(v) => setForm({ ...form, fromEmail: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a sender identity…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {identities.map((i) => (
+                      <SelectItem key={i.id} value={i.email}>
+                        {i.name} &lt;{i.email}&gt;
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
-                <input
+                <Input
                   type="email"
-                  className="input"
                   placeholder="you@yourdomain.com"
                   value={form.fromEmail}
                   onChange={(e) => setForm({ ...form, fromEmail: e.target.value })}
                   required
                 />
               )}
-            </label>
+            </div>
           </>
         )}
 
         {step === "Content" && (
           <>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Content</h3>
+            <h3 className="text-sm font-semibold text-foreground">Content</h3>
             <div className="grid grid-cols-2 gap-4">
-              <label className="label">
-                Template
-                <select className="input" value={form.templateId} onChange={(e) => applyTemplate(e.target.value)}>
-                  <option value="">— none, write from scratch —</option>
-                  {templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="label">
-                Format
-                <select
-                  className="input"
+              <div className="flex flex-col gap-1.5">
+                <Label>Template</Label>
+                <Select value={form.templateId || "__none"} onValueChange={(v) => applyTemplate(v === "__none" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">— none, write from scratch —</SelectItem>
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={String(t.id)}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Format</Label>
+                <Select
                   value={form.contentType}
-                  onChange={(e) => setForm({ ...form, contentType: e.target.value as typeof form.contentType })}
+                  onValueChange={(v) => setForm({ ...form, contentType: v as typeof form.contentType })}
                 >
-                  <option value="html">HTML</option>
-                  <option value="plain">Plain text</option>
-                  <option value="markdown">Markdown</option>
-                </select>
-              </label>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="html">HTML</SelectItem>
+                    <SelectItem value="plain">Plain text</SelectItem>
+                    <SelectItem value="markdown">Markdown</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <label className="label">
-              Subject
-              <input className="input" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required />
-            </label>
-            <label className="label">
-              Body — use {"{{Subscriber.Email}}"}, {"{{Subscriber.Name}}"}, {"{{Subscriber.FirstName}}"}
-              <textarea className="input font-mono" rows={12} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} required />
-            </label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="subject">Subject</Label>
+              <Input id="subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="body">
+                Body — use {"{{Subscriber.Email}}"}, {"{{Subscriber.Name}}"}, {"{{Subscriber.FirstName}}"}
+              </Label>
+              <Textarea
+                id="body"
+                className="font-mono"
+                rows={12}
+                value={form.body}
+                onChange={(e) => setForm({ ...form, body: e.target.value })}
+                required
+              />
+            </div>
           </>
         )}
 
         {step === "Tracking" && (
           <>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Tracking</h3>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-accent"
+            <h3 className="text-sm font-semibold text-foreground">Tracking</h3>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground/80">
+              <Checkbox
                 checked={form.trackOpens}
-                onChange={(e) => setForm({ ...form, trackOpens: e.target.checked })}
+                onCheckedChange={(checked) => setForm({ ...form, trackOpens: !!checked })}
               />
               Track opens
             </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-accent"
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground/80">
+              <Checkbox
                 checked={form.trackClicks}
-                onChange={(e) => setForm({ ...form, trackClicks: e.target.checked })}
+                onCheckedChange={(checked) => setForm({ ...form, trackClicks: !!checked })}
               />
               Track link clicks
             </label>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               Opens are tracked via an invisible pixel; clicks via a redirect link — both are per-recipient, so turning
               either off applies to this whole letter.
             </p>
@@ -290,67 +316,72 @@ export default function NewCampaign() {
 
         {step === "Schedule" && (
           <>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Schedule</h3>
-            <label className="label max-w-xs">
-              Send at (leave empty to send immediately after creating)
-              <input type="datetime-local" className="input" value={form.sendAt} onChange={(e) => setForm({ ...form, sendAt: e.target.value })} />
-            </label>
+            <h3 className="text-sm font-semibold text-foreground">Schedule</h3>
+            <div className="flex max-w-xs flex-col gap-1.5">
+              <Label htmlFor="send-at">Send at (leave empty to send immediately after creating)</Label>
+              <Input
+                id="send-at"
+                type="datetime-local"
+                value={form.sendAt}
+                onChange={(e) => setForm({ ...form, sendAt: e.target.value })}
+              />
+            </div>
           </>
         )}
 
         {step === "Review" && (
           <>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Review</h3>
+            <h3 className="text-sm font-semibold text-foreground">Review</h3>
             <dl className="grid grid-cols-[140px,1fr] gap-y-2 text-sm">
-              <dt className="text-slate-400">Name</dt>
+              <dt className="text-muted-foreground">Name</dt>
               <dd>{form.name || "—"}</dd>
-              <dt className="text-slate-400">From</dt>
+              <dt className="text-muted-foreground">From</dt>
               <dd>{form.fromEmail || "—"}</dd>
-              <dt className="text-slate-400">Subject</dt>
+              <dt className="text-muted-foreground">Subject</dt>
               <dd>{form.subject || "—"}</dd>
-              <dt className="text-slate-400">Lists</dt>
+              <dt className="text-muted-foreground">Lists</dt>
               <dd>{form.listIds.size ? lists.filter((l) => form.listIds.has(l.id)).map((l) => l.name).join(", ") : "—"}</dd>
-              <dt className="text-slate-400">Ad-hoc recipients</dt>
+              <dt className="text-muted-foreground">Ad-hoc recipients</dt>
               <dd>{splitEmails(form.toEmails).length || 0}</dd>
-              <dt className="text-slate-400">Tracking</dt>
+              <dt className="text-muted-foreground">Tracking</dt>
               <dd>
                 {form.trackOpens ? "Opens" : null}
                 {form.trackOpens && form.trackClicks ? " + " : null}
                 {form.trackClicks ? "Clicks" : null}
                 {!form.trackOpens && !form.trackClicks ? "Off" : null}
               </dd>
-              <dt className="text-slate-400">Schedule</dt>
+              <dt className="text-muted-foreground">Schedule</dt>
               <dd>{form.sendAt ? new Date(form.sendAt).toLocaleString() : "Send immediately after creating"}</dd>
             </dl>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               A pre-flight check (sender DNS, mailbox status, recipient count, unresolved variables) runs automatically
               when you hit Send from the campaigns list — this just creates the letter.
             </p>
           </>
         )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <div className="mt-2 flex items-center gap-3">
           {stepIndex > 0 && (
-            <button type="button" className="btn-ghost" onClick={goBack}>
+            <Button type="button" variant="outline" onClick={goBack}>
               Back
-            </button>
+            </Button>
           )}
           {step !== "Review" ? (
-            <button type="button" className="btn" onClick={goNext}>
+            <Button type="button" onClick={goNext}>
               Next
-            </button>
+            </Button>
           ) : (
-            <button type="button" className="btn" onClick={handleSubmit} disabled={submitting}>
+            <Button type="button" onClick={handleSubmit} disabled={submitting}>
               {submitting ? "Creating…" : form.sendAt ? "Schedule letter" : "Create letter"}
-            </button>
+            </Button>
           )}
-          <button type="button" className="btn-ghost ml-auto" onClick={() => router.push("/campaigns")}>
+          <Button type="button" variant="outline" className="ml-auto" onClick={() => router.push("/campaigns")}>
             Cancel
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -364,18 +395,19 @@ function StepIndicator({ steps, current, onJump }: { steps: readonly string[]; c
             type="button"
             onClick={() => onJump(i)}
             disabled={i > current}
-            className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={cn(
+              "flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
               i === current
-                ? "bg-accent text-white"
+                ? "bg-primary text-primary-foreground"
                 : i < current
-                ? "bg-blue-50 text-accent hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20"
-                : "bg-slate-100 text-slate-400 dark:bg-white/5"
-            }`}
+                ? "bg-primary/10 text-primary hover:bg-primary/20"
+                : "bg-muted text-muted-foreground"
+            )}
           >
             {i < current ? <CheckIcon width={12} height={12} /> : <span>{i + 1}</span>}
             {label}
           </button>
-          {i < steps.length - 1 && <div className={`h-px flex-1 ${i < current ? "bg-accent/40" : "bg-slate-200 dark:bg-white/10"}`} />}
+          {i < steps.length - 1 && <div className={cn("h-px flex-1", i < current ? "bg-primary/40" : "bg-border")} />}
         </div>
       ))}
     </div>

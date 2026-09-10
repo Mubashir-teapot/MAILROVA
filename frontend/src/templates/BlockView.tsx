@@ -49,27 +49,27 @@ export function BlockView({
       }}
       onClick={onSelect}
       className={`group relative rounded-md border-2 transition-colors ${
-        selected ? "border-accent" : "border-transparent hover:border-slate-200"
+        selected ? "border-primary" : "border-transparent hover:border-border"
       } ${dragging ? "opacity-40" : ""}`}
     >
       <div
-        className={`absolute -top-3 right-2 z-10 flex items-center gap-0.5 rounded-md border border-slate-200 bg-white p-0.5 shadow-sm transition-opacity ${
+        className={`absolute -top-3 right-2 z-10 flex items-center gap-0.5 rounded-md border border-border bg-popover p-0.5 shadow-sm transition-opacity ${
           selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         }`}
       >
-        <span className="cursor-grab px-1 text-slate-400" title="Drag to reorder">
+        <span className="cursor-grab px-1 text-muted-foreground" title="Drag to reorder">
           <GripIcon width={14} height={14} />
         </span>
-        <button type="button" onClick={() => onMove(-1)} disabled={isFirst} className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30">
+        <button type="button" onClick={() => onMove(-1)} disabled={isFirst} className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30">
           <ArrowUpIcon width={13} height={13} />
         </button>
-        <button type="button" onClick={() => onMove(1)} disabled={isLast} className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30">
+        <button type="button" onClick={() => onMove(1)} disabled={isLast} className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30">
           <ArrowDownIcon width={13} height={13} />
         </button>
-        <button type="button" onClick={onDuplicate} className="p-1 text-slate-400 hover:text-slate-700">
+        <button type="button" onClick={onDuplicate} className="p-1 text-muted-foreground hover:text-foreground">
           <DuplicateIcon width={13} height={13} />
         </button>
-        <button type="button" onClick={onDelete} className="p-1 text-slate-400 hover:text-red-600">
+        <button type="button" onClick={onDelete} className="p-1 text-muted-foreground hover:text-destructive">
           <TrashIcon width={13} height={13} />
         </button>
       </div>
@@ -120,7 +120,7 @@ function BlockContent({ block, onChange }: { block: Block; onChange: (patch: Par
           {block.src ? (
             <img src={block.src} alt={block.alt} style={{ maxWidth: "100%", width: block.width, display: "inline-block" }} />
           ) : (
-            <div className="flex aspect-[3/1] w-full items-center justify-center rounded-md border border-dashed border-slate-300 text-slate-300">
+            <div className="flex aspect-[3/1] w-full items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
               <MediaIcon width={28} height={28} />
             </div>
           )}
@@ -175,7 +175,7 @@ function EditableText({
     contentEditable: true,
     suppressContentEditableWarning: true,
     style,
-    className: "outline-none focus:ring-1 focus:ring-accent/40 rounded-sm",
+    className: "outline-none focus:ring-1 focus:ring-primary/40 rounded-sm",
     onBlur: (e: React.FocusEvent<HTMLElement>) => onChange(e.currentTarget.innerHTML),
     onClick: (e: React.MouseEvent) => e.stopPropagation(),
     dangerouslySetInnerHTML: { __html: html },

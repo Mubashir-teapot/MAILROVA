@@ -5,8 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { ReactNode } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { useTheme } from "@/theme/ThemeContext";
+import { useSidebar } from "@/sidebar/SidebarContext";
+import { cn } from "@/lib/utils";
 import { LogoMark } from "./Logo";
 import { ConfirmDialogHost } from "./ConfirmDialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import {
   AtSignIcon,
   AuditLogIcon,
@@ -50,6 +54,7 @@ const NAV = [
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
+  const { collapsed, toggle: toggleSidebar } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -59,44 +64,101 @@ export function Layout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
-      <aside className="flex w-56 flex-col gap-6 bg-ink p-4 text-white">
-        <div className="flex items-center gap-2 px-1">
-          <LogoMark forceDark />
-          <span className="text-[15px] font-semibold tracking-tight">Mailrova</span>
+    <div className="flex min-h-screen bg-background">
+      <aside
+        className={cn(
+          "flex flex-col gap-6 border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground transition-[width] duration-200",
+          collapsed ? "w-16" : "w-56"
+        )}
+      >
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <LogoMark />
+            {!collapsed && <span className="truncate text-[15px] font-semibold tracking-tight">Mailrova</span>}
+          </div>
+          <button
+            onClick={toggleSidebar}
+            className="shrink-0 rounded-md p-1 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5">
           {NAV.map((n) => {
             const isActive = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
-            return (
+            const link = (
               <Link
                 key={n.to}
                 href={n.to}
-                className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors ${
-                  isActive ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"
-                }`}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
+                  collapsed && "justify-center",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                )}
               >
-                <n.icon />
-                {n.label}
+                <n.icon className="shrink-0" />
+                {!collapsed && n.label}
               </Link>
+            );
+            if (!collapsed) return link;
+            return (
+              <Tooltip key={n.to}>
+                <TooltipTrigger asChild>{link}</TooltipTrigger>
+                <TooltipContent side="right">{n.label}</TooltipContent>
+              </Tooltip>
             );
           })}
         </nav>
-        <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
-          <button
-            onClick={toggle}
-            className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-slate-400 hover:bg-white/5 hover:text-white"
-          >
-            {theme === "dark" ? <SunIcon width={16} height={16} /> : <MoonIcon width={16} height={16} />}
-            {theme === "dark" ? "Light mode" : "Dark mode"}
-          </button>
-          <div className="flex items-center justify-between px-2.5 text-xs">
-            <span className="truncate text-slate-400">{user?.username}</span>
-            <button onClick={handleLogout} className="flex items-center gap-1 rounded px-1 py-1 text-slate-400 hover:text-white">
-              <LogoutIcon width={14} height={14} />
-              Logout
+        <div className="flex flex-col gap-2 border-t border-sidebar-border pt-3">
+          {collapsed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={toggle}
+                  className="flex items-center justify-center rounded-md px-2.5 py-2 text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                >
+                  {theme === "dark" ? <SunIcon width={16} height={16} /> : <MoonIcon width={16} height={16} />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">{theme === "dark" ? "Light mode" : "Dark mode"}</TooltipContent>
+            </Tooltip>
+          ) : (
+            <button
+              onClick={toggle}
+              className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            >
+              {theme === "dark" ? <SunIcon width={16} height={16} /> : <MoonIcon width={16} height={16} />}
+              {theme === "dark" ? "Light mode" : "Dark mode"}
             </button>
-          </div>
+          )}
+          {collapsed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center justify-center rounded-md px-2.5 py-2 text-sidebar-foreground/60 hover:text-sidebar-accent-foreground"
+                  aria-label="Logout"
+                >
+                  <LogoutIcon width={14} height={14} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Logout ({user?.username})</TooltipContent>
+            </Tooltip>
+          ) : (
+            <div className="flex items-center justify-between px-2.5 text-xs">
+              <span className="truncate text-sidebar-foreground/60">{user?.username}</span>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1 rounded px-1 py-1 text-sidebar-foreground/60 hover:text-sidebar-accent-foreground"
+              >
+                <LogoutIcon width={14} height={14} />
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </aside>
       <main className="flex-1 p-6">

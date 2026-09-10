@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/api/client";
 import { TrashIcon } from "./icons";
 import { confirmDialog } from "./ConfirmDialog";
 import { EmptyState, Loading } from "./States";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export interface Column {
   key: string;
@@ -54,6 +61,7 @@ export function CrudTable({ resourcePath, columns, formFields, extractList }: Pr
       await api.post(resourcePath, form);
       setForm({});
       await load();
+      toast.success("Created");
     } catch (err: any) {
       setError(err.response?.data?.error ?? "Failed to create");
     }
@@ -61,85 +69,94 @@ export function CrudTable({ resourcePath, columns, formFields, extractList }: Pr
 
   async function handleDelete(id: number) {
     if (!(await confirmDialog("Delete this item?"))) return;
-    await api.delete(`${resourcePath}/${id}`);
-    await load();
+    try {
+      await api.delete(`${resourcePath}/${id}`);
+      await load();
+      toast.success("Deleted");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error ?? "Failed to delete");
+    }
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <form onSubmit={handleCreate} className="card flex flex-wrap items-end gap-3">
-        {formFields.map((f) => (
-          <label key={f.name} className="label">
-            {f.label}
-            {f.type === "checkbox" ? (
-              <input
-                type="checkbox"
-                className="h-4 w-4 self-start accent-accent"
-                checked={!!form[f.name]}
-                onChange={(e) => setForm({ ...form, [f.name]: e.target.checked })}
-              />
-            ) : (
-              <input
-                type={f.type ?? "text"}
-                required={f.required}
-                className="input"
-                value={form[f.name] ?? ""}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    [f.name]: f.type === "number" ? Number(e.target.value) : e.target.value,
-                  })
-                }
-              />
-            )}
-          </label>
-        ))}
-        <button type="submit" className="btn">
-          Add
-        </button>
-      </form>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <Card>
+        <CardContent>
+          <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-3">
+            {formFields.map((f) => (
+              <div key={f.name} className="flex flex-col gap-1.5">
+                <Label htmlFor={f.name}>{f.label}</Label>
+                {f.type === "checkbox" ? (
+                  <Checkbox
+                    id={f.name}
+                    className="self-start"
+                    checked={!!form[f.name]}
+                    onCheckedChange={(checked) => setForm({ ...form, [f.name]: !!checked })}
+                  />
+                ) : (
+                  <Input
+                    id={f.name}
+                    type={f.type ?? "text"}
+                    required={f.required}
+                    value={form[f.name] ?? ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        [f.name]: f.type === "number" ? Number(e.target.value) : e.target.value,
+                      })
+                    }
+                  />
+                )}
+              </div>
+            ))}
+            <Button type="submit">Add</Button>
+          </form>
+        </CardContent>
+      </Card>
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       {loading ? (
         <Loading />
       ) : (
-        <div className="card overflow-x-auto p-0">
-          <table className="table-base">
-            <thead>
-              <tr>
+        <Card className="overflow-x-auto p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
                 {columns.map((c) => (
-                  <th key={c.key}>{c.label}</th>
+                  <TableHead key={c.key}>{c.label}</TableHead>
                 ))}
-                <th />
-              </tr>
-            </thead>
-            <tbody>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {rows.map((row) => (
-                <tr key={row.id}>
+                <TableRow key={row.id}>
                   {columns.map((c) => (
-                    <td key={c.key}>{c.render ? c.render(row) : String(row[c.key] ?? "")}</td>
+                    <TableCell key={c.key}>{c.render ? c.render(row) : String(row[c.key] ?? "")}</TableCell>
                   ))}
-                  <td className="w-10">
-                    <button
+                  <TableCell className="w-10">
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleDelete(row.id)}
-                      className="text-slate-400 hover:text-red-600"
+                      className="text-muted-foreground hover:text-destructive"
                       aria-label="Delete"
                     >
                       <TrashIcon />
-                    </button>
-                  </td>
-                </tr>
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
               {!rows.length && (
-                <tr>
-                  <td colSpan={columns.length + 1}>
+                <TableRow>
+                  <TableCell colSpan={columns.length + 1}>
                     <EmptyState message="Nothing here yet." />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   );

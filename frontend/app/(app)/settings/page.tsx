@@ -2,6 +2,11 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/api/client";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function Settings() {
   const [sendRate, setSendRate] = useState(60);
@@ -52,37 +57,41 @@ export default function Settings() {
     <div className="flex flex-col gap-5">
       <h2 className="page-title">Settings</h2>
 
-      <form onSubmit={handleSaveRate} className="card flex flex-col gap-3">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Sending</h3>
-        <label className="label max-w-xs">
-          Send rate (emails per minute)
-          <input
-            type="number"
-            min={1}
-            className="input"
-            value={sendRate}
-            onChange={(e) => setSendRate(Number(e.target.value))}
-          />
-        </label>
-        <p className="text-xs text-slate-400">
-          Throttles how fast campaigns send, on top of each domain's/mailbox's daily limit. Takes effect on the very
-          next message sent — no restart needed.
-        </p>
-        {rateSaved && <p className="text-xs text-green-600">Saved.</p>}
-        <button type="submit" className="btn w-fit" disabled={savingRate}>
-          {savingRate ? "Saving…" : "Save"}
-        </button>
-      </form>
+      <Card className="p-5">
+        <form onSubmit={handleSaveRate} className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold text-foreground">Sending</h3>
+          <div className="flex max-w-xs flex-col gap-1.5">
+            <Label htmlFor="send-rate">Send rate (emails per minute)</Label>
+            <Input
+              id="send-rate"
+              type="number"
+              min={1}
+              value={sendRate}
+              onChange={(e) => setSendRate(Number(e.target.value))}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Throttles how fast campaigns send, on top of each domain's/mailbox's daily limit. Takes effect on the very
+            next message sent — no restart needed.
+          </p>
+          {rateSaved && <p className="text-xs text-emerald-600 dark:text-emerald-400">Saved.</p>}
+          <Button type="submit" className="w-fit" disabled={savingRate}>
+            {savingRate ? "Saving…" : "Save"}
+          </Button>
+        </form>
+      </Card>
 
-      <form onSubmit={handleSaveJson} className="card flex flex-col gap-3">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">All settings (advanced)</h3>
-        <textarea rows={16} className="input font-mono" value={json} onChange={(e) => setJson(e.target.value)} />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {saved && <p className="text-xs text-green-600">Saved.</p>}
-        <button type="submit" className="btn w-fit">
-          Save raw JSON
-        </button>
-      </form>
+      <Card className="p-5">
+        <form onSubmit={handleSaveJson} className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold text-foreground">All settings (advanced)</h3>
+          <Textarea rows={16} className="font-mono" value={json} onChange={(e) => setJson(e.target.value)} />
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {saved && <p className="text-xs text-emerald-600 dark:text-emerald-400">Saved.</p>}
+          <Button type="submit" className="w-fit">
+            Save raw JSON
+          </Button>
+        </form>
+      </Card>
     </div>
   );
 }

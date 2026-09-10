@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/api/client";
 import {
   ArrowDownIcon,
@@ -45,8 +46,18 @@ export function VisualEditor({ doc, onChange }: Props) {
   const [preview, setPreview] = useState(false);
 
   function loadMedia() {
-    api.get("/media").then(({ data }) => setMedia(data));
+    api
+      .get("/media")
+      .then(({ data }) => setMedia(data))
+      .catch((err) => toast.error(err.response?.data?.error ?? "Failed to load media library"));
   }
+
+  // Loaded once up front instead of only on the "Browse media library"
+  // click, so an Image block already shows what's available the moment
+  // it's selected.
+  useEffect(() => {
+    loadMedia();
+  }, []);
 
   function updateBlocks(blocks: Block[]) {
     onChange({ ...doc, blocks });

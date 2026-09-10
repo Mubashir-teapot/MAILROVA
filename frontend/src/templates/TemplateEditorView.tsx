@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { api } from "@/api/client";
 import { MediaIcon, UploadIcon } from "@/components/icons";
 import { VisualEditor } from "./VisualEditor";
@@ -58,7 +59,10 @@ export function TemplateEditorView({ id }: { id?: string }) {
   }, [id, isNew]);
 
   function loadMedia() {
-    api.get("/media").then(({ data }) => setMedia(data));
+    api
+      .get("/media")
+      .then(({ data }) => setMedia(data))
+      .catch((err) => toast.error(err.response?.data?.error ?? "Failed to load media library"));
   }
 
   function insertAtCursor(snippet: string) {

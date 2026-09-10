@@ -136,7 +136,14 @@ export default function NewCampaign() {
       });
       router.push("/campaigns");
     } catch (err: any) {
-      setError(err.response?.data?.error ?? "Failed to create letter");
+      const fieldErrors = err.response?.data?.details?.fieldErrors as Record<string, string[]> | undefined;
+      const detail = fieldErrors
+        ? Object.entries(fieldErrors)
+            .filter(([, msgs]) => msgs?.length)
+            .map(([field, msgs]) => `${field}: ${msgs.join(", ")}`)
+            .join(" · ")
+        : undefined;
+      setError(detail || err.response?.data?.error || "Failed to create letter");
     } finally {
       setSubmitting(false);
     }

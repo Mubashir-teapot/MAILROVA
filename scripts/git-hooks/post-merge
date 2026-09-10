@@ -1,0 +1,18 @@
+#!/bin/bash
+# Runs automatically after `git pull` (pull = fetch + merge, which is what
+# triggers post-merge) finishes on the server. Rebuilds and restarts only
+# what actually changed since the last deploy, `docker compose` skips
+# rebuilding a service whose build context didn't change, so this is cheap
+# to run on every pull even when nothing changed.
+#
+# One-time setup (git hooks aren't tracked/copied by git itself, so this
+# can't install itself):
+#   cp scripts/git-hooks/post-merge .git/hooks/post-merge
+#   chmod +x .git/hooks/post-merge
+# From then on, every `git pull` on this checkout rebuilds automatically.
+set -e
+
+cd "$(git rev-parse --show-toplevel)"
+echo "→ post-merge: rebuilding and restarting changed services…"
+docker compose up --build -d
+echo "→ post-merge: done."

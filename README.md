@@ -249,6 +249,24 @@ mail on a dedicated IP if the host has more than one.
 - Back up the `db_data` volume (Postgres) and `mta_dkim_keys` volume (DKIM
   private keys; losing these breaks signing for existing domains).
 
+### Deploying without Dokploy's auto-deploy / a GitHub webhook
+
+If you deploy by `git pull`-ing on the server yourself rather than through
+Dokploy's GitHub integration, a plain `git pull` does **not** rebuild
+anything, you'd have to remember to separately run `docker compose up
+--build -d` every time. A git hook fixes that: after every `git pull`, it
+rebuilds and restarts automatically (cheaply, `docker compose` skips
+rebuilding a service whose build context didn't change).
+
+One-time setup on the server (git hooks aren't tracked/copied by git itself,
+so this can't install itself):
+```bash
+cp scripts/git-hooks/post-merge .git/hooks/post-merge
+chmod +x .git/hooks/post-merge
+```
+From then on, every `git pull` on that checkout rebuilds and restarts
+whatever changed, no separate `--build` step to remember.
+
 ## Notes
 
 - `listmonk-master/` (if present) is reference material only, gitignored,

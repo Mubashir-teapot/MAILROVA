@@ -7,6 +7,7 @@ interface AuthUser {
   id: number;
   username: string;
   permissions: string[];
+  roleName: string | null;
 }
 
 interface AuthContextValue {

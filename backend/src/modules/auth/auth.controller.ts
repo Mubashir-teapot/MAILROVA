@@ -15,7 +15,7 @@ export const authController = {
     const { username, password } = loginSchema.parse(req.body);
     const user = await authService.login(req.tenantId, username, password);
     setSessionCookie(res, user);
-    res.json({ id: user.id, username: user.username, permissions: user.permissions });
+    res.json({ id: user.id, username: user.username, permissions: user.permissions, roleName: user.roleName });
   },
 
   async logout(_req: Request, res: Response) {

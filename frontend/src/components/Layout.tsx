@@ -35,6 +35,10 @@ import {
 // (see each module's *.routes.ts requirePermission(...) call) — a user
 // needs ANY one of the listed permissions to see the link at all.
 // `undefined` means always visible to any logged-in user (just Dashboard).
+// `superAdminOnly` is separate from permissions entirely: Users and Roles
+// together control who can log in and what they can do, so they're gated
+// on the literal "Super Admin" role server-side (requireSuperAdmin), not a
+// permission a custom role could be granted — this mirrors that here.
 const NAV = [
   { to: "/", label: "Dashboard", icon: DashboardIcon },
   { to: "/subscribers", label: "Subscribers", icon: UsersIcon, permissions: ["subscribers:get_all", "subscribers:manage"] },
@@ -47,11 +51,11 @@ const NAV = [
   { to: "/suppressions", label: "Suppressions", icon: BlockIcon, permissions: ["bounces:get", "bounces:manage"] },
   { to: "/domains", label: "Domains", icon: GlobeIcon, permissions: ["settings:get", "settings:manage"] },
   { to: "/mailboxes", label: "Mailboxes", icon: AtSignIcon, permissions: ["users:get", "users:manage"] },
-  { to: "/users", label: "Users", icon: UsersIcon, permissions: ["users:get", "users:manage"] },
-  { to: "/roles", label: "Roles", icon: RoleIcon, permissions: ["roles:get", "roles:manage"] },
+  { to: "/users", label: "Users", icon: UsersIcon, superAdminOnly: true },
+  { to: "/roles", label: "Roles", icon: RoleIcon, superAdminOnly: true },
   { to: "/audit-log", label: "Audit Log", icon: AuditLogIcon, permissions: ["audit:get"] },
   { to: "/settings", label: "Settings", icon: SettingsIcon, permissions: ["settings:get", "settings:manage"] },
-] satisfies { to: string; label: string; icon: typeof DashboardIcon; permissions?: string[] }[];
+] satisfies { to: string; label: string; icon: typeof DashboardIcon; permissions?: string[]; superAdminOnly?: boolean }[];
 
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -73,11 +77,13 @@ export function Layout({ children }: { children: ReactNode }) {
           collapsed ? "w-16" : "w-56"
         )}
       >
-        <div className="flex items-center justify-between gap-2 px-1">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <LogoMark />
-            {!collapsed && <span className="truncate text-[15px] font-semibold tracking-tight">Mailrova</span>}
-          </div>
+        <div className={cn("flex items-center gap-2 px-1", collapsed ? "justify-center" : "justify-between")}>
+          {!collapsed && (
+            <div className="flex items-center gap-2 overflow-hidden">
+              <LogoMark />
+              <span className="truncate text-[15px] font-semibold tracking-tight">Mailrova</span>
+            </div>
+          )}
           <button
             onClick={toggleSidebar}
             className="shrink-0 rounded-md p-1 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -87,7 +93,11 @@ export function Layout({ children }: { children: ReactNode }) {
           </button>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5">
-          {NAV.filter((n) => !n.permissions || n.permissions.some((p) => user?.permissions?.includes(p))).map((n) => {
+          {NAV.filter(
+            (n) =>
+              (!n.permissions || n.permissions.some((p) => user?.permissions?.includes(p))) &&
+              (!n.superAdminOnly || user?.roleName === "Super Admin")
+          ).map((n) => {
             const isActive = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
             const link = (
               <Link

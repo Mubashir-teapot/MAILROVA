@@ -1,11 +1,14 @@
 import { Router } from "express";
 import { asyncHandler } from "../../common/utils/asyncHandler";
-import { requireAuth, requirePermission } from "../../common/middleware/auth.middleware";
+import { requireAuth, requireSuperAdmin } from "../../common/middleware/auth.middleware";
 import { rolesController } from "./roles.controller";
 
 export const rolesRoutes = Router();
 
-rolesRoutes.use(requireAuth, requirePermission("roles:get", "roles:manage"));
+// Defining what permissions exist is Super Admin only — see
+// requireSuperAdmin's comment for why this isn't just another permission a
+// custom role can be granted.
+rolesRoutes.use(requireAuth, requireSuperAdmin);
 
 rolesRoutes.get("/", asyncHandler(rolesController.list));
 // Must come before "/:id" — otherwise Express would treat "permissions" as
@@ -14,6 +17,6 @@ rolesRoutes.get("/", asyncHandler(rolesController.list));
 // frontend never hardcodes this list, so it can't drift from ALL_PERMISSIONS).
 rolesRoutes.get("/permissions", asyncHandler(rolesController.permissions));
 rolesRoutes.get("/:id", asyncHandler(rolesController.get));
-rolesRoutes.post("/", requirePermission("roles:manage"), asyncHandler(rolesController.create));
-rolesRoutes.put("/:id", requirePermission("roles:manage"), asyncHandler(rolesController.update));
-rolesRoutes.delete("/:id", requirePermission("roles:manage"), asyncHandler(rolesController.remove));
+rolesRoutes.post("/", asyncHandler(rolesController.create));
+rolesRoutes.put("/:id", asyncHandler(rolesController.update));
+rolesRoutes.delete("/:id", asyncHandler(rolesController.remove));

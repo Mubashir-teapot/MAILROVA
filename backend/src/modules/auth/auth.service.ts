@@ -13,7 +13,13 @@ export const authService = {
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw ApiError.unauthorized("Invalid credentials");
 
-    return { id: user.id, tenantId: user.tenantId, username: user.username, permissions: user.role?.permissions ?? [] };
+    return {
+      id: user.id,
+      tenantId: user.tenantId,
+      username: user.username,
+      permissions: user.role?.permissions ?? [],
+      roleName: user.role?.name ?? null,
+    };
   },
 
   async me(tenantId: number, userId: number) {
@@ -24,6 +30,7 @@ export const authService = {
       username: user.username,
       email: user.email,
       permissions: user.role?.permissions ?? [],
+      roleName: user.role?.name ?? null,
     };
   },
 };

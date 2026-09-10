@@ -10,6 +10,7 @@ export interface AuthUser {
   tenantId: number;
   username: string;
   permissions: string[];
+  roleName: string | null;
 }
 
 declare global {
@@ -67,4 +68,15 @@ export function requirePermission(...perms: string[]) {
     if (!ok) throw ApiError.forbidden(`Missing permission: ${perms.join(" or ")}`);
     next();
   };
+}
+
+// Managing users and roles together is how someone with a lesser role could
+// escalate themselves (grant their own role more permissions, or create a
+// new account and assign it a stronger role) — deliberately not just
+// another permission a custom role can be granted, only the literal
+// "Super Admin" role (the one seed.ts/platform bootstrap always creates,
+// and the only one roles.service.ts refuses to let anyone delete) passes.
+export function requireSuperAdmin(req: Request, _res: Response, next: NextFunction) {
+  if (req.user?.roleName !== "Super Admin") throw ApiError.forbidden("Super Admin only");
+  next();
 }

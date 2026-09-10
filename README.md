@@ -1,13 +1,102 @@
-# Mailrova
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="frontend/public/logo-mark-dark.png">
+    <img src="frontend/public/logo-mark-light.png" alt="Mailrova" width="340">
+  </picture>
+</p>
 
-Open-source, self-hosted email marketing platform. Built by
-[UA Technologies](https://ua-technologies.com).
+<h1 align="center">Mailrova</h1>
+<p align="center">Open-source, self-hosted email marketing platform.</p>
+<p align="center">Built by <a href="https://ua-technologies.com">UA Technologies</a>.</p>
 
 A self-hosted, multi-tenant email marketing platform: campaigns, subscriber
 lists, a visual template builder, transactional email, and its own outbound
 mail server (Postfix + OpenDKIM). No paid SMTP provider is required, though a
 third-party provider (SES, SendGrid, MXroute, ...) works too via one env
 switch.
+
+## Features
+
+**Campaigns**
+- Step-by-step campaign wizard: audience (lists or ad-hoc recipient emails),
+  sender identity, content, tracking, schedule, review.
+- Send immediately or schedule for a future date and time.
+- Draft → scheduled/running → paused/finished/cancelled lifecycle, with
+  per-campaign delivery logs (per-recipient sent/failed/bounced/undeliverable
+  status and error detail) and live stats (sent, retrying, undeliverable,
+  bounced, opens, clicks, unsubscribes).
+- One-click `List-Unsubscribe` headers on every send (RFC 8058), no login
+  required to unsubscribe.
+- Retried sends use a durable, crash-safe queue (pg-boss on Postgres) — a
+  backend restart or redeploy never re-sends anything already delivered, and
+  never silently drops what was still in flight.
+
+**Templates**
+- Visual drag-and-drop block builder (heading, text, image, button, divider,
+  spacer blocks) with live preview, or hand-write raw HTML.
+- A shared media library: upload an image once, reuse it from the visual
+  builder's Image block or "Insert image" in raw HTML, instead of
+  re-uploading the same logo/banner every time.
+- Personalization variables (`{{Subscriber.Name}}`, `{{Subscriber.Email}}`,
+  `{{Campaign.Subject}}`, `{{UnsubscribeUrl}}`, ...) insertable from the
+  editor.
+- Send a real test email to yourself before committing to a full send.
+- Separate transactional template type for one-off, API-triggered sends
+  (password resets, receipts) outside the campaign/list system.
+
+**Subscribers & Lists**
+- Lists to organize subscribers; campaigns can target one or more lists,
+  and/or an ad-hoc list of recipient addresses typed directly into the
+  wizard.
+- CSV import for bulk-adding subscribers.
+- A suppression list: bounced or unsubscribed addresses are never sent to
+  again, automatically, across every future campaign.
+
+**Sending domains & deliverability**
+- Add a sending domain (e.g. `marketing.yourdomain.com`) and the app
+  generates the exact SPF, DKIM, DMARC, and MX records to paste into your
+  DNS provider, plus a live "Verify domain" check against real DNS,
+  including a forward-confirmed reverse-DNS (PTR) check against your
+  server's own IP.
+- DKIM keys are generated and rotated into the mail server automatically
+  the moment a domain is added, no manual key handling, no full container
+  restart, it's wired in live via a `docker exec` into the running mail
+  server.
+- Per-domain daily send-volume warmup ramp, so a newly added domain builds
+  sending reputation gradually instead of blasting full volume on day one.
+
+**Mailboxes**
+- Sending accounts on a verified domain (`hello@`, `news@`, etc.), each with
+  its own display name, optional SMTP-AUTH password, and independent daily
+  send cap.
+- Assign specific users to specific mailboxes — a user only sees and sends
+  from the mailbox(es) they're assigned to, and the Users page shows which
+  mailbox(es) each person can send from at a glance.
+
+**Users, Roles & permissions**
+- Role-based access control, with each role's permissions organized by
+  sidebar tab (Subscribers, Campaigns, Templates, Media, Domains, Mailboxes,
+  etc.) rather than raw backend permission names — check a tab, that role
+  can fully use it.
+- The sidebar itself follows a user's role live: a tab only appears if their
+  role has been granted it.
+- Managing Users and Roles is restricted to the Super Admin role only, so a
+  lesser role can never see other accounts or escalate its own permissions.
+
+**Dashboard & UI**
+- Recent campaigns and quick-action shortcuts on the dashboard.
+- Light/dark theme, followed by the sidebar and every page (not just a
+  cosmetic toggle, the sidebar background genuinely tracks it).
+- Collapsible sidebar (icon-only mode), with the choice remembered across
+  reloads.
+- An audit log of who changed what (roles, settings, users) and when.
+
+**Multi-tenancy**
+- One deployment can serve multiple organizations, each resolved by the
+  hostname the request came in on, with fully isolated users, lists,
+  campaigns, domains, and settings per tenant.
+- A separate platform-admin login manages tenants themselves, independent
+  of any tenant's own users.
 
 ## Requirements
 
@@ -32,13 +121,13 @@ First boot will:
 2. Start the `mta` (Postfix) container
 3. Start the backend, which runs `prisma db push` to create the schema, then
    seeds a platform admin and a default tenant + admin user (see below)
-4. Start the frontend (Next.js dev server)
+4. Start the frontend (Next.js production build)
 
 `db`, `backend`, and `frontend` publish no host ports; they're only
 reachable from other containers on the compose network (`db:5432`,
-`backend:4000`, `frontend:5173`). That's deliberate: in production behind
-Dokploy/Traefik (see below), nothing should be reachable except through the
-reverse proxy. For local dev, reach them with:
+`mailrova-backend:4000`, `frontend:5173`). That's deliberate: in production
+behind Dokploy/Traefik (see below), nothing should be reachable except
+through the reverse proxy. For local dev, reach them with:
 
 ```bash
 docker compose exec backend sh -c "wget -qO- http://localhost:4000/api/health"  # sanity check
@@ -102,8 +191,9 @@ One switch in `.env`: **`MAIL_MODE`**
   - Outbound port 25 open on the host
   - At least one domain added and verified from the **Domains** page in the
     app, this generates the SPF/DKIM/DMARC/MX records you paste into your
-    DNS provider, and a **Verify DNS** button that live-checks them
-  - `SERVER_PUBLIC_IP` set in `.env` (used to generate a correct SPF record)
+    DNS provider, and a **Verify domain** button that live-checks them
+  - `SERVER_PUBLIC_IP` set in `.env` (used to generate a correct SPF record
+    and to check the PTR record)
 - `third_party`: fill in `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` /
   `SMTP_PASS` / `SMTP_SECURE` for any provider (SES, SendGrid, Postmark,
   MXroute, etc.) and set `MAIL_MODE=third_party`. Nothing else in the app
@@ -136,7 +226,10 @@ organization on its own (sub)domain:
 ## Media storage
 
 `.env` → `MEDIA_PROVIDER`:
-- `filesystem` (default): stored in the `backend_uploads` Docker volume
+- `filesystem` (default): stored in the `backend_uploads` Docker volume,
+  served back at `PUBLIC_URL/uploads/...` (must be an absolute, publicly
+  reachable URL, since the same address is embedded directly into sent
+  email HTML, not just viewed in the admin UI)
 - `s3`: AWS S3 or any S3-compatible store, including Cloudflare R2 (set
   `S3_ENDPOINT=https://<accountid>.r2.cloudflarestorage.com` and
   `S3_FORCE_PATH_STYLE=true`)
@@ -155,21 +248,26 @@ docker compose exec backend npm test
 (Runs from inside the container, since `db` publishes no host port; see
 "Production deployment" below.) Priority coverage: tenant isolation (every
 resource type, the top-priority case), campaign retry/dedup logic, the
-suppression list, auth (session + API key), and DNS verification. This is a
-focused suite on the areas that were explicitly hardened, not exhaustive
-coverage of every endpoint.
+suppression list, session auth, and DNS verification. This is a focused
+suite on the areas that were explicitly hardened, not exhaustive coverage of
+every endpoint.
 
 ## Stack
 
-- **Backend**: Express + TypeScript, PostgreSQL via Prisma
-- **Frontend**: Next.js 16 (App Router) + TypeScript + Tailwind
+- **Backend**: Express + TypeScript, PostgreSQL via Prisma, pg-boss for the
+  durable send queue
+- **Frontend**: Next.js 16 (App Router) + TypeScript + Tailwind + shadcn/ui
 - **Mail**: self-hosted Postfix/OpenDKIM (`mta` service) for direct-to-MX
   sending, or any third-party SMTP provider
 - **Multi-tenant**: one deployment can serve multiple organizations, each
   resolved by hostname, fully data-isolated
 - **Auth**: HttpOnly secure session cookies (JWT-signed), never localStorage.
-  Tenant users and the platform admin have separate, independent sessions.
-- Everything runs via Docker Compose: 4 services, `db`, `mta`, `backend`, `frontend`
+  Permissions and role are always re-checked fresh against the database on
+  every request, never trusted from the cookie itself, so a role change
+  takes effect on the user's very next request. Tenant users and the
+  platform admin have separate, independent sessions.
+- Everything runs via Docker Compose: `db`, `mta`, `docker-proxy`, `backend`,
+  `frontend`
 
 ## Project layout
 
@@ -182,9 +280,10 @@ backend/                 Express API, one module per feature
 frontend/                Next.js 16 App Router app
   app/                      pages (admin app, /admin/login, /platform)
   src/                      api client, auth contexts, components, template editor
-docker-compose.yml       db + mta + backend + frontend
+mta/                     boky/postfix extended with bounce-DSN routing
+docker-compose.yml       db + mta + docker-proxy + backend + frontend
 .env.example             every variable, documented inline
-FEATURES.md              feature deep-dive this project was scoped against
+FEATURES.md              feature deep-dive of listmonk, the reference project this was scoped against
 ```
 
 ## Production deployment (Dokploy)
@@ -193,10 +292,11 @@ FEATURES.md              feature deep-dive this project was scoped against
 `mta`'s DKIM/management side publish no host ports and get no public
 domain. `db`/`backend` are `expose`-only (container-network-only), reachable
 solely from other containers. The browser never talks to the backend
-directly: `frontend`'s Next.js server proxies every `/api/*` request to it
-internally (`frontend/next.config.js`), including unauthenticated links like
+directly: `frontend`'s Next.js server proxies every `/api/*` (and
+`/uploads/*`, for media) request to it internally
+(`frontend/next.config.js`), including unauthenticated links like
 unsubscribe/opt-in that get clicked from outside any browser session. Those
-also go `https://app.yourdomain.com/api/...` → proxied → `backend:4000`.
+also go `https://app.yourdomain.com/api/...` → proxied → `mailrova-backend:4000`.
 This is built for [Dokploy](https://dokploy.com) (Traefik under the hood):
 
 1. Push this repo, add it as a **Docker Compose** application in Dokploy.
@@ -240,14 +340,19 @@ mail on a dedicated IP if the host has more than one.
 - Set real values in `.env`: strong `JWT_SECRET`, real `PUBLIC_URL` (the
   frontend's domain), `CORS_ORIGINS`, `SERVER_PUBLIC_IP`.
 - The backend talks to a `docker-proxy` sidecar (`tecnativa/docker-socket-proxy`,
-  see `docker-compose.yml`) to restart the `mta` container when you add or
-  remove a sending domain from the UI. It's scoped to just container
-  inspect/create/start/stop/remove, not full Docker socket access. If you'd
-  rather not grant even that, remove the `docker-proxy` service and the
-  backend's dependency on it, and manage `mta`'s `ALLOWED_SENDER_DOMAINS` by
-  hand instead.
-- Back up the `db_data` volume (Postgres) and `mta_dkim_keys` volume (DKIM
-  private keys; losing these breaks signing for existing domains).
+  see `docker-compose.yml`) to push new DKIM keys/config into the running
+  `mta` container when you add or remove a sending domain from the UI. It's
+  scoped to container inspect + exec only, not full Docker socket access,
+  and not container create/stop/remove either. If you'd rather not grant
+  even that, remove the `docker-proxy` service and the backend's dependency
+  on it, and manage `mta`'s DKIM config by hand instead.
+- Back up the `db_data` volume (Postgres, every subscriber/campaign/setting)
+  and `mta_dkim_keys` volume (DKIM private keys; losing these breaks signing
+  for existing domains). Neither is backed up automatically, set up your own
+  schedule (e.g. a cron'd `pg_dump` shipped off-box).
+- After a fresh redeploy that recreates `mta` from a clean image, the
+  backend automatically re-syncs every existing domain's DKIM config into it
+  on startup, no manual step needed.
 
 ### Deploying without Dokploy's auto-deploy / a GitHub webhook
 

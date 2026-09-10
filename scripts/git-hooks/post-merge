@@ -14,9 +14,14 @@ set -e
 
 cd "$(git rev-parse --show-toplevel)"
 echo "→ post-merge: rebuilding and restarting changed services…"
-# -V renews anonymous volumes (e.g. node_modules) on recreated containers —
+# --no-cache: don't trust Docker's layer cache at all, every deploy
+# recompiles from scratch. Slower, but after chasing more than one
+# "it's not rebuilding" issue that turned out to be stale cached state
+# somewhere, certainty wins over the few extra seconds.
+# -V: renews anonymous volumes (e.g. node_modules) on recreated containers —
 # an anonymous volume otherwise survives `--build` and can silently serve
 # stale content from before the rebuild (this is exactly what happened with
 # frontend's old .next volume, since removed from docker-compose.yml).
-docker compose up --build -d -V
+docker compose build --no-cache
+docker compose up -d -V
 echo "→ post-merge: done."

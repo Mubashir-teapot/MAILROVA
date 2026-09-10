@@ -13,7 +13,14 @@ const nextConfig = {
     // unique container_name "mailrova-backend" specifically so this can't
     // happen; BACKEND_INTERNAL_URL still overrides both for non-compose setups.
     const backend = process.env.BACKEND_INTERNAL_URL ?? `http://mailrova-backend:${process.env.BACKEND_PORT ?? 4000}`;
-    return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
+    return [
+      { source: "/api/:path*", destination: `${backend}/api/:path*` },
+      // Uploaded media (filesystem.storage.ts) is served by the backend at
+      // /uploads/*, outside /api — without this, the Media page's thumbnails
+      // and any image inserted into a template 404 in the browser, since
+      // only /api/* was ever forwarded to the backend.
+      { source: "/uploads/:path*", destination: `${backend}/uploads/:path*` },
+    ];
   },
 };
 

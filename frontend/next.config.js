@@ -7,7 +7,12 @@ const nextConfig = {
   // first and gets forwarded server-side, over the internal Docker network,
   // to the backend. Only this frontend needs a public Domain in Dokploy.
   async rewrites() {
-    const backend = process.env.BACKEND_INTERNAL_URL ?? `http://backend:${process.env.BACKEND_PORT ?? 4000}`;
+    // "backend" (the bare compose service name) is generic enough to
+    // collide with another project's same-named service on a shared Docker
+    // host — docker-compose.yml gives the backend service the host-wide-
+    // unique container_name "mailrova-backend" specifically so this can't
+    // happen; BACKEND_INTERNAL_URL still overrides both for non-compose setups.
+    const backend = process.env.BACKEND_INTERNAL_URL ?? `http://mailrova-backend:${process.env.BACKEND_PORT ?? 4000}`;
     return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
   },
 };

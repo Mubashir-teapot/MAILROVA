@@ -77,6 +77,14 @@ services:
   backend:
     build:
       context: ./backend
+    # "backend" is a generic enough service name to collide with another
+    # project's same-named service on a shared Docker host (this is exactly
+    # what broke /api/* in production: the frontend's rewrite target
+    # "backend" was resolving to a DIFFERENT project's container). An
+    # explicit container_name is enforced host-wide unique by the Docker
+    # daemon itself, so it can't collide — next.config.js's rewrite targets
+    # this name instead of the bare service name.
+    container_name: mailrova-backend
     restart: unless-stopped
     env_file: .env
     environment:

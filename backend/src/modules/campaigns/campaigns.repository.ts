@@ -114,10 +114,14 @@ export const campaignsRepository = {
   },
 
   recordSend(campaignId: number, email: string, status: SendStatus, opts?: { subscriberId?: number; error?: string }) {
+    // `error: undefined` here must mean "clear it" (a retry that just
+    // succeeded), not "leave whatever was there" — Prisma skips undefined
+    // fields on update, so without the `?? null` a successful retry kept
+    // showing the earlier failed attempt's error message next to "sent".
     return prisma.campaignSend.upsert({
       where: { campaignId_email: { campaignId, email } },
-      create: { campaignId, email, status, subscriberId: opts?.subscriberId, error: opts?.error },
-      update: { status, error: opts?.error },
+      create: { campaignId, email, status, subscriberId: opts?.subscriberId, error: opts?.error ?? null },
+      update: { status, error: opts?.error ?? null },
     });
   },
 

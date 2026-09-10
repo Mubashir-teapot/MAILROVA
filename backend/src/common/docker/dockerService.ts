@@ -70,10 +70,17 @@ async function doSyncMtaDomains(domains: string[]): Promise<void> {
 }
 
 // Reads the DKIM public key OpenDKIM generated for a domain, from the shared
-// volume also mounted (read-only) into the backend container.
-export async function readDkimPublicKeyRecord(domain: string, selector: string): Promise<string | null> {
+// volume also mounted (read-only) into the backend container. boky/postfix's
+// DKIM_AUTOGENERATE writes these flat — "{domain}.private"/"{domain}.txt" —
+// not nested under a per-domain folder or named after the selector (confirmed
+// against this image's own startup log: "Key for domain x.com already exists
+// in /etc/opendkim/keys/x.com.private"). `selector` is unused here — it only
+// matters for the DNS record *name* (${selector}._domainkey.${domain}),
+// constructed separately in domains.service.ts — but stays in the signature
+// since every call site already has it at hand and passing it costs nothing.
+export async function readDkimPublicKeyRecord(domain: string, _selector: string): Promise<string | null> {
   const fs = await import("fs/promises");
-  const path = `${env.mta.dkimKeysPath}/${domain}/${selector}.txt`;
+  const path = `${env.mta.dkimKeysPath}/${domain}.txt`;
   try {
     const raw = await fs.readFile(path, "utf-8");
     // The .txt file boky/postfix writes is BIND zone-file format, e.g.:

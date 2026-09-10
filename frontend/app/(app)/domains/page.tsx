@@ -142,6 +142,11 @@ export default function Domains() {
                 </p>
               </div>
               <div className="flex gap-2">
+                {openId === d.id && (
+                  <Button variant="outline" size="sm" onClick={() => refreshRecords(d.id)}>
+                    Refresh
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={() => (openId === d.id ? setOpenId(null) : openRecords(d.id))}>
                   {openId === d.id ? "Hide records" : "DNS records"}
                 </Button>

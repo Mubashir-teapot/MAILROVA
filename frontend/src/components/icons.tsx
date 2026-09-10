@@ -236,3 +236,18 @@ export const AuditLogIcon = (p: IconProps) => (
     <path d="M8 13h8M8 17h5" />
   </Base>
 );
+
+export const EyeIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z" />
+    <circle cx="12" cy="12" r="3" />
+  </Base>
+);
+
+export const EyeOffIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M3 3l18 18" />
+    <path d="M10.6 5.1A10.9 10.9 0 0 1 12 5c7 0 10.5 7 10.5 7a13.6 13.6 0 0 1-3.1 4M6.3 6.4C3.4 8.3 1.5 12 1.5 12s3.5 7 10.5 7a10.6 10.6 0 0 0 4.2-.8" />
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+  </Base>
+);

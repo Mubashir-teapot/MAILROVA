@@ -9,12 +9,23 @@ interface Role {
   name: string;
 }
 
+interface Mailbox {
+  email: string;
+  users: { user: { id: number } }[];
+}
+
 export default function Users() {
   const [roles, setRoles] = useState<Role[]>([]);
+  const [mailboxes, setMailboxes] = useState<Mailbox[]>([]);
 
   useEffect(() => {
     api.get("/roles").then(({ data }) => setRoles(data));
+    api.get("/mailboxes").then(({ data }) => setMailboxes(data));
   }, []);
+
+  function mailboxesFor(userId: number) {
+    return mailboxes.filter((m) => m.users.some((u) => u.user.id === userId)).map((m) => m.email);
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -33,6 +44,14 @@ export default function Users() {
           { key: "type", label: "Type" },
           { key: "status", label: "Status" },
           { key: "roleId", label: "Role", render: (r) => roles.find((role) => role.id === r.roleId)?.name ?? "-" },
+          {
+            key: "mailboxes",
+            label: "Sends from",
+            render: (r) => {
+              const emails = mailboxesFor(r.id);
+              return emails.length ? emails.join(", ") : "-";
+            },
+          },
         ]}
         formFields={[
           { name: "username", label: "Username", required: true },

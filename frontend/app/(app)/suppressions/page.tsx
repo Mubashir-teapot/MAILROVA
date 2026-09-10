@@ -7,7 +7,7 @@ export default function Suppressions() {
     <div className="flex flex-col gap-4">
       <h2 className="page-title">Suppressions</h2>
       <p className="text-sm text-muted-foreground">
-        Addresses no campaign or transactional send will ever go to — populated automatically by
+        Addresses no campaign or transactional send will ever go to. Populated automatically by
         hard bounces, complaints, and unsubscribes, or added here manually.
       </p>
       <CrudTable

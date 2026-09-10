@@ -84,7 +84,7 @@ export async function verifyPtr(serverIp: string | undefined): Promise<PtrCheckR
     ptrHostname = null;
   }
   if (!ptrHostname) {
-    return { status: "failed", ptrHostname: null, note: `No PTR record found for ${serverIp} — ask your hosting provider to set one.` };
+    return { status: "failed", ptrHostname: null, note: `No PTR record found for ${serverIp}. Ask your hosting provider to set one.` };
   }
 
   try {

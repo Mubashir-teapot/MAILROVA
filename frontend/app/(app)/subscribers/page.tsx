@@ -102,7 +102,7 @@ export default function Subscribers() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="page-title">Subscribers</h2>
-          <p className="text-sm text-muted-foreground">Everyone you can email, across every list — {total} total.</p>
+          <p className="text-sm text-muted-foreground">Everyone you can email, across every list. {total} total.</p>
         </div>
         <Input
           className="max-w-xs"

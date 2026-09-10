@@ -21,7 +21,7 @@ export default function Users() {
       <div>
         <h2 className="page-title">Users</h2>
         <p className="text-sm text-muted-foreground">
-          People who can log into this admin — teammates, not subscribers. What each one can see and do is set by
+          People who can log into this admin. Teammates, not subscribers. What each one can see and do is set by
           their Role (see the Roles page).
         </p>
       </div>
@@ -32,7 +32,7 @@ export default function Users() {
           { key: "email", label: "Email" },
           { key: "type", label: "Type" },
           { key: "status", label: "Status" },
-          { key: "roleId", label: "Role", render: (r) => roles.find((role) => role.id === r.roleId)?.name ?? "—" },
+          { key: "roleId", label: "Role", render: (r) => roles.find((role) => role.id === r.roleId)?.name ?? "-" },
         ]}
         formFields={[
           { name: "username", label: "Username", required: true },

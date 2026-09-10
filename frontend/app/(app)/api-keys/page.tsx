@@ -72,13 +72,13 @@ export default function ApiKeys() {
     <div className="flex flex-col gap-4">
       <h2 className="page-title">API Keys</h2>
       <p className="text-sm text-muted-foreground">
-        For programmatic access — send <code>Authorization: Bearer &lt;key&gt;</code> instead of
+        For programmatic access. Send <code>Authorization: Bearer &lt;key&gt;</code> instead of
         logging in. Each key has the same permissions as the user who created it.
       </p>
 
       {freshKey && (
         <Card className="flex flex-col gap-2 border-primary/40 bg-primary/5 p-5">
-          <p className="text-sm font-semibold text-foreground">Copy this key now — it won&apos;t be shown again</p>
+          <p className="text-sm font-semibold text-foreground">Copy this key now. It won&apos;t be shown again</p>
           <div className="flex items-center gap-2">
             <code className="flex-1 overflow-x-auto rounded-md bg-foreground px-3 py-2 text-xs text-background">{freshKey}</code>
             <Button type="button" variant="outline" onClick={copyKey}>

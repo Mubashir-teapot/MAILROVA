@@ -40,7 +40,7 @@ export default function Templates() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="page-title">Templates</h2>
-          <p className="text-sm text-muted-foreground">Reusable designs — with images — for letters and transactional mail.</p>
+          <p className="text-sm text-muted-foreground">Reusable designs, with images, for letters and transactional mail.</p>
         </div>
         <Button asChild>
           <Link href="/templates/new">New template</Link>

@@ -122,7 +122,7 @@ export const domainsService = {
         type: "TXT",
         name: domain.domain,
         value: `v=spf1 ip4:${env.mta.serverIp} ~all`,
-        note: "SPF — authorizes this server to send as your domain",
+        note: "SPF: authorizes this server to send as your domain",
         status: domain.spfStatus,
       });
     } else {
@@ -130,7 +130,7 @@ export const domainsService = {
         type: "TXT",
         name: domain.domain,
         value: "(set SERVER_PUBLIC_IP in .env to generate this)",
-        note: "SPF — blocked on knowing your server's public IP",
+        note: "SPF: blocked on knowing your server's public IP",
         status: "pending",
       });
     }
@@ -140,8 +140,8 @@ export const domainsService = {
     records.push({
       type: "TXT",
       name: `${domain.dkimSelector}._domainkey.${domain.domain}`,
-      value: dkimValue ?? "(generating — check back in a few seconds)",
-      note: "DKIM — signs every outgoing message so receivers can verify it's really from you",
+      value: dkimValue ?? "(generating, check back in a few seconds)",
+      note: "DKIM: signs every outgoing message so receivers can verify it's really from you",
       status: domain.dkimStatus,
     });
 
@@ -149,7 +149,7 @@ export const domainsService = {
       type: "TXT",
       name: `_dmarc.${domain.domain}`,
       value: `v=DMARC1; p=quarantine; rua=mailto:postmaster@${domain.domain}`,
-      note: "DMARC — tells receivers what to do if SPF/DKIM fail",
+      note: "DMARC: tells receivers what to do if SPF/DKIM fail",
       status: domain.dmarcStatus,
     });
 
@@ -158,7 +158,7 @@ export const domainsService = {
       type: "MX",
       name: domain.domain,
       value: `10 ${mxHost}`,
-      note: "Optional — only needed if you want to receive bounces/replies on this domain",
+      note: "Optional, only needed if you want to receive bounces/replies on this domain",
       status: domain.mxStatus,
     });
     if (env.mta.hostname && env.mta.serverIp) {
@@ -166,7 +166,7 @@ export const domainsService = {
         type: "A",
         name: env.mta.hostname,
         value: env.mta.serverIp,
-        note: "Points your mail hostname at this server — required if MX above is used",
+        note: "Points your mail hostname at this server, required if MX above is used",
         status: "pending",
       });
     }
@@ -179,7 +179,7 @@ export const domainsService = {
     records.push({
       type: "PTR",
       name: env.mta.serverIp ?? "(SERVER_PUBLIC_IP not set)",
-      value: ptr.ptrHostname ?? "—",
+      value: ptr.ptrHostname ?? "-",
       note: ptr.note,
       status: ptr.status,
     });

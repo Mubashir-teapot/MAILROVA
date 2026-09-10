@@ -83,7 +83,7 @@ export default function Domains() {
     try {
       await api.post(`/domains/${id}/verify`);
       await refreshRecords(id);
-      toast.success("Checked live DNS — statuses updated below");
+      toast.success("Checked live DNS. Statuses updated below");
     } catch (err: any) {
       toast.error(err.response?.data?.error ?? "Verification failed");
     } finally {
@@ -109,7 +109,7 @@ export default function Domains() {
         <h2 className="page-title">Sending domains</h2>
         <p className="text-sm text-muted-foreground">
           A domain you own that this server sends email as (e.g. <code className="rounded bg-muted px-1 py-0.5 text-xs">marketing.yourdomain.com</code>).
-          Add it, paste the generated records into your DNS provider (Cloudflare), then verify — this is what proves to
+          Add it, paste the generated records into your DNS provider (Cloudflare), then verify. This is what proves to
           receiving mail servers that your messages aren't spoofed.
         </p>
       </div>
@@ -167,7 +167,7 @@ export default function Domains() {
                     <>
                       {!records.ready && (
                         <div className="flex items-center justify-between rounded-md bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
-                          DKIM key is still generating (mail server is restarting) — refresh in a few seconds.
+                          DKIM key is still generating (mail server is restarting). Refresh in a few seconds.
                           <Button variant="outline" size="sm" onClick={() => refreshRecords(d.id)}>
                             Refresh
                           </Button>
@@ -213,7 +213,7 @@ export default function Domains() {
                         </TableBody>
                       </Table>
                       <p className="text-xs text-muted-foreground">
-                        The PTR row isn't something you set here — it's controlled by whoever hosts your server's IP
+                        The PTR row isn't something you set here. It's controlled by whoever hosts your server's IP
                         (Hostinger), not your DNS zone (Cloudflare). Set it in Hostinger's panel to match this domain/hostname;
                         "Verify domain" checks it live but can't create it for you.
                       </p>

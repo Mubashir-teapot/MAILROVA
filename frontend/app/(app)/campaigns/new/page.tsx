@@ -176,7 +176,7 @@ export default function NewCampaign() {
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="to-emails">Or specific e-mail(s) — one person, or a handful, comma or newline separated</Label>
+              <Label htmlFor="to-emails">Or specific e-mail(s), one person or a handful, comma or newline separated</Label>
               <Textarea
                 id="to-emails"
                 rows={2}
@@ -202,7 +202,7 @@ export default function NewCampaign() {
           <>
             <h3 className="text-sm font-semibold text-foreground">Sender</h3>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="camp-name">Internal name — for your own reference, recipients never see it</Label>
+              <Label htmlFor="camp-name">Internal name, for your own reference, recipients never see it</Label>
               <Input id="camp-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -244,7 +244,7 @@ export default function NewCampaign() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none">— none, write from scratch —</SelectItem>
+                    <SelectItem value="__none">None, write from scratch</SelectItem>
                     {templates.map((t) => (
                       <SelectItem key={t.id} value={String(t.id)}>
                         {t.name}
@@ -276,7 +276,7 @@ export default function NewCampaign() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="body">
-                Body — use {"{{Subscriber.Email}}"}, {"{{Subscriber.Name}}"}, {"{{Subscriber.FirstName}}"}
+                Body: use {"{{Subscriber.Email}}"}, {"{{Subscriber.Name}}"}, {"{{Subscriber.FirstName}}"}
               </Label>
               <Textarea
                 id="body"
@@ -308,7 +308,7 @@ export default function NewCampaign() {
               Track link clicks
             </label>
             <p className="text-xs text-muted-foreground">
-              Opens are tracked via an invisible pixel; clicks via a redirect link — both are per-recipient, so turning
+              Opens are tracked via an invisible pixel; clicks via a redirect link. Both are per-recipient, so turning
               either off applies to this whole letter.
             </p>
           </>
@@ -334,13 +334,13 @@ export default function NewCampaign() {
             <h3 className="text-sm font-semibold text-foreground">Review</h3>
             <dl className="grid grid-cols-[140px,1fr] gap-y-2 text-sm">
               <dt className="text-muted-foreground">Name</dt>
-              <dd>{form.name || "—"}</dd>
+              <dd>{form.name || "-"}</dd>
               <dt className="text-muted-foreground">From</dt>
-              <dd>{form.fromEmail || "—"}</dd>
+              <dd>{form.fromEmail || "-"}</dd>
               <dt className="text-muted-foreground">Subject</dt>
-              <dd>{form.subject || "—"}</dd>
+              <dd>{form.subject || "-"}</dd>
               <dt className="text-muted-foreground">Lists</dt>
-              <dd>{form.listIds.size ? lists.filter((l) => form.listIds.has(l.id)).map((l) => l.name).join(", ") : "—"}</dd>
+              <dd>{form.listIds.size ? lists.filter((l) => form.listIds.has(l.id)).map((l) => l.name).join(", ") : "-"}</dd>
               <dt className="text-muted-foreground">Ad-hoc recipients</dt>
               <dd>{splitEmails(form.toEmails).length || 0}</dd>
               <dt className="text-muted-foreground">Tracking</dt>
@@ -355,7 +355,7 @@ export default function NewCampaign() {
             </dl>
             <p className="text-xs text-muted-foreground">
               A pre-flight check (sender DNS, mailbox status, recipient count, unresolved variables) runs automatically
-              when you hit Send from the campaigns list — this just creates the letter.
+              when you hit Send from the campaigns list. This just creates the letter.
             </p>
           </>
         )}

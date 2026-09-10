@@ -37,7 +37,7 @@ export default function PlatformLoginPage() {
           </div>
           <div>
             <h1 className="text-sm font-medium text-foreground">Platform admin sign in</h1>
-            <p className="text-xs text-muted-foreground">Manages tenants — separate from any organization's own login.</p>
+            <p className="text-xs text-muted-foreground">Manages tenants, separate from any organization's own login.</p>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="username">Username</Label>

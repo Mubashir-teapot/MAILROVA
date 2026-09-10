@@ -8,7 +8,7 @@ export default function Lists() {
       <div>
         <h2 className="page-title">Lists</h2>
         <p className="text-sm text-muted-foreground">
-          Groups of subscribers you send campaigns to — e.g. "Newsletter" or "Customers". A subscriber can belong to
+          Groups of subscribers you send campaigns to (e.g. "Newsletter" or "Customers"). A subscriber can belong to
           several lists at once.
         </p>
       </div>

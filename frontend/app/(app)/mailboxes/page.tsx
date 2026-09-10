@@ -138,7 +138,7 @@ export default function Mailboxes() {
       <div>
         <h2 className="page-title">Mailboxes</h2>
         <p className="text-sm text-muted-foreground">
-          Sending accounts on your verified domains — e.g. info@ or sales@ — with their own password, daily limit, and
+          Sending accounts on your verified domains (e.g. info@ or sales@), with their own password, daily limit, and
           user access.
         </p>
       </div>

@@ -37,7 +37,7 @@ export default function Bounces() {
       <div>
         <h2 className="page-title">Bounces</h2>
         <p className="text-sm text-muted-foreground">
-          Delivery failures reported back by receiving mail servers — read-only log, recorded automatically as
+          Delivery failures reported back by receiving mail servers. Read-only log, recorded automatically as
           campaigns and transactional mail send. Repeated hard bounces or complaints add an address to Suppressions.
         </p>
       </div>

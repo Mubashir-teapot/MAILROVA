@@ -141,7 +141,7 @@ export default function Campaigns() {
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[c.status]}>{c.status}</Badge>
                   </TableCell>
-                  <TableCell>{c.sendAt ? new Date(c.sendAt).toLocaleString() : "—"}</TableCell>
+                  <TableCell>{c.sendAt ? new Date(c.sendAt).toLocaleString() : "-"}</TableCell>
                   <TableCell>{c.sent}</TableCell>
                   <TableCell className="flex gap-2">
                     {(NEXT_STATUS[c.status] ?? []).map((s) => (
@@ -188,7 +188,7 @@ export default function Campaigns() {
                                   <Badge variant={LOG_STATUS_VARIANT[entry.status]}>{entry.status}</Badge>
                                 </TableCell>
                                 <TableCell className="max-w-xs truncate text-xs text-muted-foreground" title={entry.error ?? ""}>
-                                  {entry.error ?? "—"}
+                                  {entry.error ?? "-"}
                                 </TableCell>
                                 <TableCell>{new Date(entry.sentAt).toLocaleString()}</TableCell>
                               </TableRow>

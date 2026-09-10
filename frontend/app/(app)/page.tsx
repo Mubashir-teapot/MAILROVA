@@ -33,7 +33,7 @@ export default function Dashboard() {
     <div className="flex flex-col gap-4">
       <div>
         <h2 className="page-title">Dashboard</h2>
-        <p className="text-sm text-muted-foreground">A quick look at where things stand — click any card to jump there.</p>
+        <p className="text-sm text-muted-foreground">A quick look at where things stand. Click any card to jump there.</p>
       </div>
       <div className="flex flex-wrap gap-4">
         {cards.map((c) => (

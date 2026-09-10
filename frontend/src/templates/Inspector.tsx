@@ -62,9 +62,9 @@ export function Inspector({ block, media, onLoadMedia, onChange }: Props) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">H1 — large</SelectItem>
-                <SelectItem value="2">H2 — medium</SelectItem>
-                <SelectItem value="3">H3 — small</SelectItem>
+                <SelectItem value="1">H1 (large)</SelectItem>
+                <SelectItem value="2">H2 (medium)</SelectItem>
+                <SelectItem value="3">H3 (small)</SelectItem>
               </SelectContent>
             </Select>
           </div>

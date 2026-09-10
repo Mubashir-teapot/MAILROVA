@@ -39,7 +39,7 @@ export default function AuditLog() {
     <div className="flex flex-col gap-4">
       <h2 className="page-title">Audit Log</h2>
       <p className="text-sm text-muted-foreground">
-        Important admin and user actions in this tenant — user/role changes, domain and mailbox
+        Important admin and user actions in this tenant: user/role changes, domain and mailbox
         changes, campaign sends, settings changes, and API key activity.
       </p>
 
@@ -71,9 +71,9 @@ export default function AuditLog() {
                   <TableCell>
                     <Badge variant="secondary">{e.action}</Badge>
                   </TableCell>
-                  <TableCell>{e.targetType ? `${e.targetType} #${e.targetId}` : "—"}</TableCell>
+                  <TableCell>{e.targetType ? `${e.targetType} #${e.targetId}` : "-"}</TableCell>
                   <TableCell className="max-w-sm truncate text-xs text-muted-foreground" title={JSON.stringify(e.meta)}>
-                    {Object.keys(e.meta ?? {}).length ? JSON.stringify(e.meta) : "—"}
+                    {Object.keys(e.meta ?? {}).length ? JSON.stringify(e.meta) : "-"}
                   </TableCell>
                 </TableRow>
               ))}

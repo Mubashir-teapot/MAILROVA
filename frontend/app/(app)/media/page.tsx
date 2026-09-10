@@ -56,7 +56,7 @@ export default function Media() {
       <div>
         <h2 className="page-title">Media</h2>
         <p className="text-sm text-muted-foreground">
-          Images you upload once here and reuse anywhere — the template builder's Image block and "Insert image" in raw
+          Images you upload once here and reuse anywhere: the template builder's Image block and "Insert image" in raw
           HTML templates both pick from this same library, instead of uploading the same logo or banner over and over.
         </p>
       </div>
@@ -73,7 +73,7 @@ export default function Media() {
         <Loading />
       ) : media.length === 0 ? (
         <Card className="p-5">
-          <EmptyState message="No media uploaded yet — upload an image above to use it in templates." />
+          <EmptyState message="No media uploaded yet. Upload an image above to use it in templates." />
         </Card>
       ) : (
         <div className="flex flex-wrap gap-3">

@@ -57,7 +57,7 @@ export default function Settings() {
     <div className="flex flex-col gap-5">
       <div>
         <h2 className="page-title">Settings</h2>
-        <p className="text-sm text-muted-foreground">Tenant-wide behavior — sending throttle, and every raw setting for advanced tuning.</p>
+        <p className="text-sm text-muted-foreground">Tenant-wide behavior: sending throttle, and every raw setting for advanced tuning.</p>
       </div>
 
       <Card className="p-5">
@@ -75,7 +75,7 @@ export default function Settings() {
           </div>
           <p className="text-xs text-muted-foreground">
             Throttles how fast campaigns send, on top of each domain's/mailbox's daily limit. Takes effect on the very
-            next message sent — no restart needed.
+            next message sent. No restart needed.
           </p>
           {rateSaved && <p className="text-xs text-emerald-600 dark:text-emerald-400">Saved.</p>}
           <Button type="submit" className="w-fit" disabled={savingRate}>

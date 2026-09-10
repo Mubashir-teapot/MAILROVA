@@ -135,7 +135,7 @@ export default function PlatformDashboard() {
             </div>
             <p className="text-xs text-muted-foreground">
               How often the scheduler checks for scheduled/running campaigns across all tenants. Takes effect on the
-              next tick — no restart needed.
+              next tick. No restart needed.
             </p>
             {schedulerSaved && <p className="text-xs text-emerald-600 dark:text-emerald-400">Saved.</p>}
             <Button type="submit" className="w-fit" disabled={savingScheduler}>
@@ -228,7 +228,7 @@ export default function PlatformDashboard() {
                 </div>
                 <button onClick={() => toggleStatus(t)}>
                   <Badge variant={t.status === "active" ? "success" : "destructive"}>
-                    {t.status} — click to {t.status === "active" ? "suspend" : "activate"}
+                    {t.status}, click to {t.status === "active" ? "suspend" : "activate"}
                   </Badge>
                 </button>
               </div>

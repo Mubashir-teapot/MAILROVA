@@ -147,7 +147,7 @@ export default function Import() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none">— don't send anything —</SelectItem>
+                    <SelectItem value="__none">Don't send anything</SelectItem>
                     {templates.map((t) => (
                       <SelectItem key={t.id} value={String(t.id)}>
                         {t.name}

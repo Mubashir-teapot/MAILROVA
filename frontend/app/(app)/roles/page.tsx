@@ -141,7 +141,7 @@ export default function Roles() {
         <div>
           <h2 className="page-title">Roles</h2>
           <p className="text-sm text-muted-foreground">
-            What a user can see and do — assign permissions here, then pick a role for each user on the Users page.
+            What a user can see and do. Assign permissions here, then pick a role for each user on the Users page.
             The sidebar itself follows these: a page only shows up for a user whose role has permission for it.
           </p>
         </div>
@@ -220,7 +220,7 @@ export default function Roles() {
             </div>
 
             <div>
-              <Label className="mb-2 inline-block">Permissions — what this role can see and do</Label>
+              <Label className="mb-2 inline-block">Permissions (what this role can see and do)</Label>
               <div className="grid max-h-[360px] grid-cols-2 gap-3 overflow-y-auto rounded-md border border-border p-3">
                 {groups.map(([group, actions]) => {
                   const allChecked = actions.every((a) => permissions.has(`${group}:${a}`));

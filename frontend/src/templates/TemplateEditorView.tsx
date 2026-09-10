@@ -134,7 +134,7 @@ export function TemplateEditorView({ id }: { id?: string }) {
     <div className="flex flex-col gap-5">
       <div>
         <h2 className="page-title">{isNew ? "New template" : "Edit template"}</h2>
-        <p className="text-sm text-muted-foreground">Design it visually, or write raw HTML — drop in images either way.</p>
+        <p className="text-sm text-muted-foreground">Design it visually, or write raw HTML. Drop in images either way.</p>
       </div>
 
       <Card className="grid grid-cols-3 gap-4 p-5">

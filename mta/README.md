@@ -6,9 +6,9 @@ Extends `boky/postfix` so bounce DSNs sent back to our VERP return-path
 `POST /webhooks/bounce/postfix` instead of failing local delivery.
 
 Needs `BOUNCE_DOMAIN` set (`.env`) and its MX record pointing at this server
-(see the Domains page's DNS records / `MTA_HOSTNAME` in `.env.example`) —
+(see the Domains page's DNS records / `MTA_HOSTNAME` in `.env.example`);
 without that, remote bounces have nowhere to come back to and this never
-fires; third-party `MAIL_MODE` bounces still go through their own ESP
+fires. Third-party `MAIL_MODE` bounces still go through their own ESP
 webhook (`/webhooks/bounce/{ses,sendgrid,postmark}`) as before.
 
 **Verify after `docker compose up --build` or any base-image update:**

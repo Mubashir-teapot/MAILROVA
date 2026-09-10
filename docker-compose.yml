@@ -71,6 +71,12 @@ services:
     environment:
       CONTAINERS: 1
       POST: 1
+      # syncMtaDomains() (dockerService.ts) stops, then REMOVES, then
+      # recreates the mta container on every domain add/remove — the
+      # remove() call is a DELETE request, which this proxy image gates
+      # separately from POST. Without this, remove() gets rejected after
+      # stop() already succeeded, leaving mta stopped and never recreated.
+      DELETE: 1
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 

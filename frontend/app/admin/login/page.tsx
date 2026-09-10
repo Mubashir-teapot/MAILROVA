@@ -93,13 +93,6 @@ export default function LoginPage() {
             {submitting ? "Signing in…" : "Log in"}
           </button>
         </form>
-
-        <p className="mt-6 text-center text-xs text-neutral-400 dark:text-neutral-600">
-          Managing tenants instead?{" "}
-          <a href="/platform/login" className="font-medium text-neutral-600 hover:underline dark:text-neutral-300">
-            Platform admin login
-          </a>
-        </p>
       </div>
     </div>
   );

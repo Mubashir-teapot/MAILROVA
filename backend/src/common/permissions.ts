@@ -30,6 +30,5 @@ export const ALL_PERMISSIONS = [
   "settings:get",
   "settings:manage",
   "settings:maintain",
-  "api_keys:manage",
   "audit:get",
 ];

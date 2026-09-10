@@ -14,7 +14,6 @@ import { importRoutes } from "../modules/import/import.routes";
 import { publicRoutes } from "../modules/public/public.routes";
 import { domainsRoutes } from "../modules/domains/domains.routes";
 import { mailboxesRoutes } from "../modules/mailboxes/mailboxes.routes";
-import { apiKeysRoutes } from "../modules/apiKeys/apiKeys.routes";
 import { suppressionsRoutes } from "../modules/suppressions/suppressions.routes";
 import { auditLogsRoutes } from "../modules/auditLogs/auditLogs.routes";
 
@@ -35,6 +34,5 @@ apiRouter.use("/import", importRoutes);
 apiRouter.use("/public", publicRoutes);
 apiRouter.use("/domains", domainsRoutes);
 apiRouter.use("/mailboxes", mailboxesRoutes);
-apiRouter.use("/api-keys", apiKeysRoutes);
 apiRouter.use("/suppressions", suppressionsRoutes);
 apiRouter.use("/audit-logs", auditLogsRoutes);

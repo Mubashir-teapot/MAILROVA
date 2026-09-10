@@ -132,13 +132,4 @@ describe("tenant isolation", () => {
     expect(listAsA.body.find((s: { id: number }) => s.id === id)).toBeUndefined();
     expect((await asA("delete", `/api/suppressions/${id}`)).status).not.toBe(204);
   });
-
-  it("an API key issued for tenant B cannot authenticate against tenant A's hostname", async () => {
-    const created = await asB("post", "/api/api-keys").send({ name: "ci key" });
-    expect(created.status).toBe(201);
-    const key = created.body.key as string;
-
-    const res = await request(app).get("/api/lists").set("Host", tenantA.hostname).set("Authorization", `Bearer ${key}`);
-    expect(res.status).toBe(401);
-  });
 });

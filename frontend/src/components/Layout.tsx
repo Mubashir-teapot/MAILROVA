@@ -19,7 +19,6 @@ import {
   CampaignIcon,
   DashboardIcon,
   GlobeIcon,
-  KeyIcon,
   ListIcon,
   LogoutIcon,
   MediaIcon,
@@ -50,7 +49,6 @@ const NAV = [
   { to: "/mailboxes", label: "Mailboxes", icon: AtSignIcon, permissions: ["users:get", "users:manage"] },
   { to: "/users", label: "Users", icon: UsersIcon, permissions: ["users:get", "users:manage"] },
   { to: "/roles", label: "Roles", icon: RoleIcon, permissions: ["roles:get", "roles:manage"] },
-  { to: "/api-keys", label: "API Keys", icon: KeyIcon, permissions: ["api_keys:manage"] },
   { to: "/audit-log", label: "Audit Log", icon: AuditLogIcon, permissions: ["audit:get"] },
   { to: "/settings", label: "Settings", icon: SettingsIcon, permissions: ["settings:get", "settings:manage"] },
 ] satisfies { to: string; label: string; icon: typeof DashboardIcon; permissions?: string[] }[];

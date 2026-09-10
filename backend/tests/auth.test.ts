@@ -5,16 +5,14 @@ import request from "supertest";
 import { app } from "../src/app";
 import { prisma } from "../src/config/prisma";
 import { resetDb } from "./setup";
-import { createTestTenant, loginAs, TestTenant } from "./helpers/factory";
+import { createTestTenant, TestTenant } from "./helpers/factory";
 
 describe("auth", () => {
   let tenant: TestTenant;
-  let cookie: string;
 
   beforeEach(async () => {
     await resetDb();
     tenant = await createTestTenant();
-    cookie = await loginAs(app, tenant);
   });
 
   afterAll(async () => {
@@ -29,36 +27,6 @@ describe("auth", () => {
   it("rejects a request with no session at all", async () => {
     const res = await request(app).get("/api/lists").set("Host", tenant.hostname);
     expect(res.status).toBe(401);
-  });
-
-  it("accepts a freshly created API key, and rejects it after revocation", async () => {
-    const created = await request(app).post("/api/api-keys").set("Host", tenant.hostname).set("Cookie", cookie).send({ name: "ci" });
-    expect(created.status).toBe(201);
-    const key = created.body.key as string;
-    const id = created.body.id as number;
-
-    const before = await request(app).get("/api/lists").set("Host", tenant.hostname).set("Authorization", `Bearer ${key}`);
-    expect(before.status).toBe(200);
-
-    const revoke = await request(app).delete(`/api/api-keys/${id}`).set("Host", tenant.hostname).set("Cookie", cookie);
-    expect(revoke.status).toBe(204);
-
-    const after = await request(app).get("/api/lists").set("Host", tenant.hostname).set("Authorization", `Bearer ${key}`);
-    expect(after.status).toBe(401);
-  });
-
-  it("rejects a malformed bearer token outright", async () => {
-    const res = await request(app).get("/api/lists").set("Host", tenant.hostname).set("Authorization", "Bearer not_a_real_key");
-    expect(res.status).toBe(401);
-  });
-
-  it("a listed API key never reveals its secret, only a prefix", async () => {
-    await request(app).post("/api/api-keys").set("Host", tenant.hostname).set("Cookie", cookie).send({ name: "ci" });
-    const list = await request(app).get("/api/api-keys").set("Host", tenant.hostname).set("Cookie", cookie);
-    expect(list.status).toBe(200);
-    expect(list.body[0].keyHash).toBeUndefined();
-    expect(list.body[0].key).toBeUndefined();
-    expect(typeof list.body[0].keyPrefix).toBe("string");
   });
 
   // Exercises the actual express-rate-limit mechanism directly, on a

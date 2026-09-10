@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env";
 import { ApiError } from "../utils/ApiError";
-import { apiKeysService } from "../../modules/apiKeys/apiKeys.service";
 
 export const SESSION_COOKIE = "mailrova_session";
 
@@ -39,21 +38,8 @@ export function clearSessionCookie(res: Response) {
   res.clearCookie(SESSION_COOKIE, { path: "/" });
 }
 
-// Accepts either the HttpOnly session cookie (browser) or an
-// `Authorization: Bearer <key>` API key (programmatic access, see
-// modules/apiKeys) — same `req.user` shape either way, so every route
-// gated by this stays gated identically regardless of which was used.
 export async function requireAuth(req: Request, _res: Response, next: NextFunction) {
   try {
-    const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith("Bearer ")) {
-      if (req.tenantId === undefined) throw ApiError.unauthorized("Unknown tenant");
-      const user = await apiKeysService.authenticate(req.tenantId, authHeader.slice(7));
-      if (!user) throw ApiError.unauthorized("Invalid or revoked API key");
-      req.user = user;
-      return next();
-    }
-
     const token = req.cookies?.[SESSION_COOKIE];
     if (!token) throw ApiError.unauthorized("Not signed in");
 

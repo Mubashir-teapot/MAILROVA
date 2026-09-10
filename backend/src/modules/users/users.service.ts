@@ -25,9 +25,11 @@ export const usersService = {
     const existing = await usersRepository.findByUsernameOrEmail(tenantId, input.username, input.email);
     if (existing) throw ApiError.conflict("Username or email already in use");
 
-    // A "user" logs in with a password; an "api" (service account) user has
-    // none — it authenticates only via API keys issued to it (see
-    // modules/apiKeys), never through /auth/login.
+    // A "user" logs in with a password. An "api" (service account) user type
+    // also exists but has no working auth path now that API keys are gone
+    // (ponytail: dead code path, kept only because dropping the "type"
+    // column/enum value needs a migration; add a real auth mechanism for it
+    // or remove the type entirely if a service-account concept is needed).
     const isApi = input.type === "api";
     if (!isApi && !input.password) throw ApiError.badRequest("Password is required");
 

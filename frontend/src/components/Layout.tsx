@@ -32,24 +32,28 @@ import {
   UsersIcon,
 } from "./icons";
 
+// `permissions` mirrors exactly what each page's backend routes require
+// (see each module's *.routes.ts requirePermission(...) call) — a user
+// needs ANY one of the listed permissions to see the link at all.
+// `undefined` means always visible to any logged-in user (just Dashboard).
 const NAV = [
   { to: "/", label: "Dashboard", icon: DashboardIcon },
-  { to: "/subscribers", label: "Subscribers", icon: UsersIcon },
-  { to: "/lists", label: "Lists", icon: ListIcon },
-  { to: "/import", label: "Import", icon: UploadIcon },
-  { to: "/campaigns", label: "Campaigns", icon: CampaignIcon },
-  { to: "/templates", label: "Templates", icon: TemplateIcon },
-  { to: "/media", label: "Media", icon: MediaIcon },
-  { to: "/bounces", label: "Bounces", icon: BounceIcon },
-  { to: "/suppressions", label: "Suppressions", icon: BlockIcon },
-  { to: "/domains", label: "Domains", icon: GlobeIcon },
-  { to: "/mailboxes", label: "Mailboxes", icon: AtSignIcon },
-  { to: "/users", label: "Users", icon: UsersIcon },
-  { to: "/roles", label: "Roles", icon: RoleIcon },
-  { to: "/api-keys", label: "API Keys", icon: KeyIcon },
-  { to: "/audit-log", label: "Audit Log", icon: AuditLogIcon },
-  { to: "/settings", label: "Settings", icon: SettingsIcon },
-];
+  { to: "/subscribers", label: "Subscribers", icon: UsersIcon, permissions: ["subscribers:get_all", "subscribers:manage"] },
+  { to: "/lists", label: "Lists", icon: ListIcon, permissions: ["lists:get_all", "lists:manage_all"] },
+  { to: "/import", label: "Import", icon: UploadIcon, permissions: ["subscribers:import"] },
+  { to: "/campaigns", label: "Campaigns", icon: CampaignIcon, permissions: ["campaigns:get_all", "campaigns:manage_all"] },
+  { to: "/templates", label: "Templates", icon: TemplateIcon, permissions: ["templates:get", "templates:manage"] },
+  { to: "/media", label: "Media", icon: MediaIcon, permissions: ["media:get", "media:manage"] },
+  { to: "/bounces", label: "Bounces", icon: BounceIcon, permissions: ["bounces:get", "bounces:manage"] },
+  { to: "/suppressions", label: "Suppressions", icon: BlockIcon, permissions: ["bounces:get", "bounces:manage"] },
+  { to: "/domains", label: "Domains", icon: GlobeIcon, permissions: ["settings:get", "settings:manage"] },
+  { to: "/mailboxes", label: "Mailboxes", icon: AtSignIcon, permissions: ["users:get", "users:manage"] },
+  { to: "/users", label: "Users", icon: UsersIcon, permissions: ["users:get", "users:manage"] },
+  { to: "/roles", label: "Roles", icon: RoleIcon, permissions: ["roles:get", "roles:manage"] },
+  { to: "/api-keys", label: "API Keys", icon: KeyIcon, permissions: ["api_keys:manage"] },
+  { to: "/audit-log", label: "Audit Log", icon: AuditLogIcon, permissions: ["audit:get"] },
+  { to: "/settings", label: "Settings", icon: SettingsIcon, permissions: ["settings:get", "settings:manage"] },
+] satisfies { to: string; label: string; icon: typeof DashboardIcon; permissions?: string[] }[];
 
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -85,7 +89,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </button>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5">
-          {NAV.map((n) => {
+          {NAV.filter((n) => !n.permissions || n.permissions.some((p) => user?.permissions?.includes(p))).map((n) => {
             const isActive = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
             const link = (
               <Link

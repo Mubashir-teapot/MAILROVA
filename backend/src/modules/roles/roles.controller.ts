@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { recordAudit } from "../../common/audit/auditLog";
+import { ALL_PERMISSIONS } from "../../common/permissions";
 import { rolesService } from "./roles.service";
 
 const roleSchema = z.object({
@@ -16,6 +17,10 @@ export const rolesController = {
 
   async get(req: Request, res: Response) {
     res.json(await rolesService.get(req.user!.tenantId, Number(req.params.id)));
+  },
+
+  async permissions(_req: Request, res: Response) {
+    res.json(ALL_PERMISSIONS);
   },
 
   async create(req: Request, res: Response) {
